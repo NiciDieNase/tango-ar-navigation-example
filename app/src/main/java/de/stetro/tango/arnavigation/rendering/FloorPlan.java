@@ -17,6 +17,7 @@ public class FloorPlan extends Object3D {
     private static final int MAX_VERTICES = 10000;
     private final float[] color;
     private QuadTree data;
+    private double floorLevel = -1.4;
 
     public FloorPlan(QuadTree data) {
         super();
@@ -65,7 +66,7 @@ public class FloorPlan extends Object3D {
         material.setColor(color);
         setMaterial(material);
         rebuildPoints();
-        setPosition(new Vector3(0, -1.4, 0));
+        setPosition(new Vector3(0, floorLevel, 0));
     }
 
     private void updatePoints(int pointCount, FloatBuffer pointCloudBuffer) {
@@ -77,4 +78,14 @@ public class FloorPlan extends Object3D {
     public QuadTree getData() {
         return data;
     }
+
+    public double getFloorLevel() {
+        return floorLevel;
+    }
+
+    public void setFloorLevel(double floorLevel) {
+        this.floorLevel = floorLevel;
+    }
+
+
 }

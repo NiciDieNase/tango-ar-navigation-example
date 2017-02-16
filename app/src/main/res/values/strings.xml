@@ -3,5 +3,11 @@
     <string name="app_name">AR Navigation</string>
     <string name="set_start_point">Set Start Point</string>
     <string name="set_end_point">Set End Point</string>
-    <string name="exception_out_of_date">Tango Version not compatible</string>
+    <string name="failed_measurement">Failed Measurment</string>
+    <string name="failed_permissions">Failed Permissions</string>
+    <string name="floorSet">Floor is defined</string>
+    <string name="no_depth_data">No Depth Data</string>
+    <string name="exception_out_of_date">"Tango service outdated!"</string>
+    <string name="exception_tango_error">"Tango exception!"</string>
+    <string name="exception_tango_invalid">"Tango invalid exception! Try again!"</string>
 </resources>

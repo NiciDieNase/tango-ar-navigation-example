@@ -100,7 +100,7 @@ public class SceneRenderer extends RajawaliRenderer {
         Pose cameraPose = ScenePoseCalculator.toOpenGlCameraPose(devicePose, extrinsics);
         getCurrentCamera().setRotation(cameraPose.getOrientation());
         getCurrentCamera().setPosition(cameraPose.getPosition());
-        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
+//        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
     }
 
     /**
@@ -199,5 +199,14 @@ public class SceneRenderer extends RajawaliRenderer {
         renderVirtualObjects = renderObjects;
         if (this.floorPlan != null)
             this.floorPlan.setVisible(renderObjects);
+    }
+
+    public void addToFloorPlan(Vector3 position){
+        floorPlan.setTrajectoryPosition(position);
+
+    }
+
+    public void setFloorLevel(double level){
+        floorPlan.setFloorLevel(level);
     }
 }

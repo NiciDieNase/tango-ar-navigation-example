@@ -13,8 +13,8 @@
         android:theme="@style/AppTheme">
 
         <uses-library
-            android:name="com.projecttango.libtango_device"
-            android:required="true"/>
+            android:name="com.projecttango.libtango_device2"
+            android:required="true" />
 
 
         <activity

@@ -20,9 +20,9 @@ android {
 
 dependencies {
     // Tango Dependencies
-    compile(name: 'TangoSDK_Kajam_Java', ext: 'jar')
-    compile(name: 'TangoSupport_Kajam_Java', ext: 'aar')
-    compile(name: 'TangoUX_Kajam_Java', ext: 'aar')
+    compile(name: 'TangoSDK_Eisa_Java', ext: 'jar')
+    compile(name: 'TangoSupport_Eisa_Java', ext: 'aar')
+    compile(name: 'TangoUX_Eisa_Java', ext: 'aar')
 
     compile 'org.rajawali3d:rajawali:1.0.294-SNAPSHOT@aar'
 }
