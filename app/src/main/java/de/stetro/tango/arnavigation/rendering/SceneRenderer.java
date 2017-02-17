@@ -7,7 +7,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 
 import com.google.atap.tangoservice.TangoCameraIntrinsics;
+import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
+import com.projecttango.examples.java.pointcloud.rajawali.PointCloud;
 import com.projecttango.rajawali.DeviceExtrinsics;
 import com.projecttango.rajawali.Pose;
 import com.projecttango.rajawali.ScenePoseCalculator;
@@ -17,6 +19,7 @@ import org.rajawali3d.materials.Material;
 import org.rajawali3d.materials.textures.ATexture;
 import org.rajawali3d.materials.textures.StreamingTexture;
 import org.rajawali3d.math.Matrix4;
+import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector2;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.primitives.Cube;
@@ -36,6 +39,7 @@ public class SceneRenderer extends RajawaliRenderer {
     public static final int QUAD_TREE_START = -60;
     public static final int QUAD_TREE_RANGE = 120;
     private static final String TAG = SceneRenderer.class.getSimpleName();
+    private static final int MAX_NUMBER_OF_POINTS = 60000;
     private final QuadTree data;
     // Rajawali texture used to render the Tango color camera
     private ATexture mTangoCameraTexture;
@@ -49,6 +53,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean fillPath = false;
     private Material blue;
     private boolean renderVirtualObjects;
+    private PointCloud mPointCloud;
 
     public SceneRenderer(Context context) {
         super(context);
@@ -88,6 +93,8 @@ public class SceneRenderer extends RajawaliRenderer {
         getCurrentScene().addChild(floorPlan);
         floorPlan.setVisible(renderVirtualObjects);
 
+        mPointCloud = new PointCloud(MAX_NUMBER_OF_POINTS, 4);
+        getCurrentScene().addChild(mPointCloud);
     }
 
     /**
@@ -208,5 +215,13 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void setFloorLevel(double level){
         floorPlan.setFloorLevel(level);
+    }
+
+    public void updatePointCloud(TangoPointCloudData pointCloudData, float[] openGlTdepth) {
+        mPointCloud.updateCloud(pointCloudData.numPoints, pointCloudData.points);
+        Matrix4 openGlTdepthMatrix = new Matrix4(openGlTdepth);
+        mPointCloud.setPosition(openGlTdepthMatrix.getTranslation());
+        // Conjugating the Quaternion is need because Rajawali uses left handed convention.
+        mPointCloud.setOrientation(new Quaternion().fromMatrix(openGlTdepthMatrix).conjugate());
     }
 }

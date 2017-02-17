@@ -268,6 +268,22 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             cameraPoseTimestamp = currentPose.timestamp;
                         }
                     }
+                    // Update point cloud data.
+                    TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
+                    if (pointCloud != null) {
+                        // Calculate the camera color pose at the camera frame update time in
+                        // OpenGL engine.
+                        TangoSupport.TangoMatrixTransformData transform =
+                                TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
+                                        TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
+                                        TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
+                                        TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+                                        TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+                                        TangoSupport.ROTATION_IGNORED);
+                        if (transform.statusCode == TangoPoseData.POSE_VALID) {
+                            renderer.updatePointCloud(pointCloud, transform.matrix);
+                        }
+                    }
                 }
             }
         });
