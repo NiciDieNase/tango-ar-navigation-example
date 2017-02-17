@@ -34,6 +34,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 import de.stetro.tango.arnavigation.data.PathFinder;
 import de.stetro.tango.arnavigation.data.QuadTree;
+import de.stetro.tango.arnavigation.ui.MainActivity;
 
 
 public class SceneRenderer extends RajawaliRenderer {
@@ -59,7 +60,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public SceneRenderer(Context context) {
         super(context);
-        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 8);
+        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 10);
     }
 
     @Override
@@ -99,10 +100,12 @@ public class SceneRenderer extends RajawaliRenderer {
         getCurrentScene().addChild(mPointCloud);
         mPointCloud.setVisible(renderVirtualObjects);
 
-        TrackPoint = new Sphere(0.05f,20,20);
-        TrackPoint.setVisible(renderVirtualObjects);
-        TrackPoint.setMaterial(tangoCameraMaterial);
-        getCurrentScene().addChild(TrackPoint);
+        if(MainActivity.MAP_CENTER){
+            TrackPoint = new Sphere(0.05f,20,20);
+            TrackPoint.setVisible(renderVirtualObjects);
+            TrackPoint.setMaterial(tangoCameraMaterial);
+            getCurrentScene().addChild(TrackPoint);
+        }
     }
 
     /**
@@ -115,7 +118,7 @@ public class SceneRenderer extends RajawaliRenderer {
         Pose cameraPose = ScenePoseCalculator.toOpenGlCameraPose(devicePose, extrinsics);
         getCurrentCamera().setRotation(cameraPose.getOrientation());
         getCurrentCamera().setPosition(cameraPose.getPosition());
-        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
+//        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
     }
 
     /**
@@ -223,8 +226,11 @@ public class SceneRenderer extends RajawaliRenderer {
     public void addToFloorPlan(List<Vector3> positions){
         for(Vector3 v : positions){
             floorPlan.setTrajectoryPosition(v);
-            TrackPoint.setPosition(v);
         }
+    }
+
+    public void setTrackPosition(Vector3 position){
+        TrackPoint.setPosition(position);
     }
 
     public void setFloorLevel(double level){
