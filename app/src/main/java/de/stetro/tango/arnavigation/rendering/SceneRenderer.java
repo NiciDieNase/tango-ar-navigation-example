@@ -24,6 +24,7 @@ import org.rajawali3d.math.vector.Vector2;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.primitives.Cube;
 import org.rajawali3d.primitives.ScreenQuad;
+import org.rajawali3d.primitives.Sphere;
 import org.rajawali3d.renderer.RajawaliRenderer;
 
 import java.util.ArrayList;
@@ -54,6 +55,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private Material blue;
     private boolean renderVirtualObjects;
     private PointCloud mPointCloud;
+    private Sphere TrackPoint;
 
     public SceneRenderer(Context context) {
         super(context);
@@ -96,6 +98,11 @@ public class SceneRenderer extends RajawaliRenderer {
         mPointCloud = new PointCloud(MAX_NUMBER_OF_POINTS, 4);
         getCurrentScene().addChild(mPointCloud);
         mPointCloud.setVisible(renderVirtualObjects);
+
+        TrackPoint = new Sphere(0.05f,20,20);
+        TrackPoint.setVisible(renderVirtualObjects);
+        TrackPoint.setMaterial(tangoCameraMaterial);
+        getCurrentScene().addChild(TrackPoint);
     }
 
     /**
@@ -215,7 +222,8 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void addToFloorPlan(List<Vector3> positions){
         for(Vector3 v : positions){
-            floorPlan.setTrajectoryPosition(v.clone());
+            floorPlan.setTrajectoryPosition(v);
+            TrackPoint.setPosition(v);
         }
     }
 

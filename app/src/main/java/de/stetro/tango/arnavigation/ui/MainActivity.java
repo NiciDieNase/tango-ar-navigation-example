@@ -1,7 +1,7 @@
 package de.stetro.tango.arnavigation.ui;
 
 import android.hardware.display.DisplayManager;
-import android.os.AsyncTask;
+import android.opengl.Matrix;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -27,6 +27,7 @@ import com.google.atap.tangoservice.TangoInvalidException;
 import com.google.atap.tangoservice.TangoOutOfDateException;
 import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
+import com.google.atap.tangoservice.experimental.TangoImageBuffer;
 import com.projecttango.rajawali.DeviceExtrinsics;
 import com.projecttango.tangosupport.TangoPointCloudManager;
 import com.projecttango.tangosupport.TangoSupport;
@@ -34,6 +35,7 @@ import com.projecttango.tangosupport.TangoSupport;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private static final double ACCURACY = 0.1;
     private static final String TAG = MainActivity.class.getSimpleName();
     protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
-    private float floorLevel = Float.NaN;
+    private double floorLevel = Float.NaN;
 
     protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
     protected Tango tango;
@@ -92,9 +94,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private int mDisplayRotation;
     private double mPointCloudPreviousTimeStamp;
     private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
-    private static final double UPDATE_INTERVAL_MS = 100.0;
+    private static final double UPDATE_INTERVAL_MS = 10.0;
     private boolean newPoints = false;
     private List<Vector3> floorPoints = new ArrayList<Vector3>();
+    private TangoImageBuffer mCurrentImageBuffer;
 
 
     private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -221,23 +224,44 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
         config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
-        try{
+        config.putBoolean(TangoConfig.KEY_BOOLEAN_DRIFT_CORRECTION, true);
+        try {
             tango.connect(config);
             ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<>();
             framePairs.add(SOS_T_DEVICE_FRAME_PAIR);
             framePairs.add(DEVICE_T_PREVIOUS_FRAME_PAIR);
             tango.connectListener(framePairs, new mTangoUpdateListener());
+
+            tango.experimentalConnectOnFrameListener(TangoCameraIntrinsics.TANGO_CAMERA_COLOR,
+                    new Tango.OnFrameAvailableListener() {
+                        @Override
+                        public void onFrameAvailable(TangoImageBuffer tangoImageBuffer, int i) {
+                            mCurrentImageBuffer = copyImageBuffer(tangoImageBuffer);
+                        }
+
+                        TangoImageBuffer copyImageBuffer(TangoImageBuffer imageBuffer) {
+                            ByteBuffer clone = ByteBuffer.allocateDirect(imageBuffer.data.capacity());
+                            imageBuffer.data.rewind();
+                            clone.put(imageBuffer.data);
+                            imageBuffer.data.rewind();
+                            clone.flip();
+                            return new TangoImageBuffer(imageBuffer.width, imageBuffer.height,
+                                    imageBuffer.stride, imageBuffer.frameNumber,
+                                    imageBuffer.timestamp, imageBuffer.format, clone);
+                        }
+                    });
+
             setupCameraProperties(tango);
             TangoSupport.initialize();
         } catch (TangoOutOfDateException e) {
             Log.e(TAG, getString(R.string.exception_out_of_date), e);
-            Toast.makeText(this,R.string.exception_out_of_date,Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
         } catch (TangoErrorException e) {
             Log.e(TAG, getString(R.string.exception_tango_error), e);
-            Toast.makeText(this,R.string.exception_tango_error,Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
         } catch (TangoInvalidException e) {
             Log.e(TAG, getString(R.string.exception_tango_invalid), e);
-            Toast.makeText(this,R.string.exception_tango_invalid,Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -287,10 +311,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             renderer.updatePointCloud(pointCloud, transform.matrix);
                         }
                     }
-                    if(newPoints){
-                        synchronized (floorPoints){
+                    if (newPoints) {
+                        synchronized (floorPoints) {
                             List<Vector3> points = new ArrayList<Vector3>();
-                            for(Vector3 v : floorPoints){
+                            for (Vector3 v : floorPoints) {
                                 points.add(v.clone());
                             }
                             renderer.addToFloorPlan(points);
@@ -319,12 +343,16 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //                } else {
 //                    Snackbar.make(view,R.string.no_depth_data, Snackbar.LENGTH_SHORT).show();
 //                }
-                float[] planePoint = findNeighbor(u, v, rgbFrameTimestamp);
-                floorLevel = planePoint[1];
-                Snackbar.make(view,R.string.floorSet,Snackbar.LENGTH_SHORT).show();
-                Log.d(TAG,"Floor level: " + floorLevel);
-                renderer.setFloorLevel(floorLevel);
-                renderer.renderVirtualObjects(true);
+                float[] planeFitTransform;
+                synchronized (this) {
+                     // TODO find floor level
+                    float[] touchPosition = getDepthAtTouchPosition(u, v);
+                    floorLevel = touchPosition[1];
+                    Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
+                    Log.d(TAG, "Floor level: ");
+                    renderer.setFloorLevel(floorLevel);
+                    renderer.renderVirtualObjects(true);
+                }
 
             } catch (TangoException t) {
                 Toast.makeText(getApplicationContext(),
@@ -341,52 +369,55 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         return true;
     }
 
-    private TangoSupport.IntersectionPointPlaneModelPair doFitPlane(float u, float v, double rgbTimestamp) {
+    /**
+     * Use the TangoSupport library with point cloud data to calculate the depth
+     * of the point closest to where the user touches the screen. It returns a
+     * Vector3 in openGL world space.
+     */
+    private float[] getDepthAtTouchPosition(float u, float v) {
         TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
-
         if (pointCloud == null) {
             return null;
         }
 
-                // We need to calculate the transform between the color camera at the
+        double rgbTimestamp;
+        TangoImageBuffer imageBuffer = mCurrentImageBuffer;
+        rgbTimestamp = imageBuffer.timestamp; // CPU.
+
+        // We need to calculate the transform between the color camera at the
         // time the user clicked and the depth camera at the time the depth
         // cloud was acquired.
-        TangoPoseData depthTcolorPose = TangoSupport.calculateRelativePose(
-                pointCloud.timestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-                rgbTimestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR);
+        TangoPoseData colorTdepthPose = TangoSupport.calculateRelativePose(
+                rgbTimestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
+                pointCloud.timestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH);
+
+        float[] point;
         double[] identityTranslation = {0.0, 0.0, 0.0};
         double[] identityRotation = {0.0, 0.0, 0.0, 1.0};
-        TangoSupport.IntersectionPointPlaneModelPair intersectionPointPlaneModelPair =
-                TangoSupport.fitPlaneModelNearPoint(pointCloud,
-                        identityTranslation, identityRotation, u, v, mDisplayRotation,
-                        depthTcolorPose.translation, depthTcolorPose.rotation);
-
-        double a = intersectionPointPlaneModelPair.planeModel[0];
-        double b = intersectionPointPlaneModelPair.planeModel[1];
-        double c = intersectionPointPlaneModelPair.planeModel[2];
-
-        double length = Math.sqrt(a * a + b * b + c * c);
-
-        intersectionPointPlaneModelPair.planeModel[0] = a / length;
-        intersectionPointPlaneModelPair.planeModel[1] = b / length;
-        intersectionPointPlaneModelPair.planeModel[2] = c / length;
-
-        return intersectionPointPlaneModelPair;
-    }
-
-    private float[] findNeighbor(float u, float v, double rgbTimestamp){
-        TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
-
-        if (pointCloud == null) {
+        point = TangoSupport.getDepthAtPointBilateral(pointCloud,
+                colorTdepthPose.translation, colorTdepthPose.rotation,
+                imageBuffer, u, v, mDisplayRotation, identityTranslation, identityRotation);
+        if (point == null) {
             return null;
         }
-        TangoPoseData depthTcolorPose = TangoSupport.calculateRelativePose(
-                pointCloud.timestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-                rgbTimestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR);
-        double[] identityTranslation = {0.0, 0.0, 0.0};
-        double[] identityRotation = {0.0, 0.0, 0.0, 1.0};
-        return TangoSupport.getDepthAtPointNearestNeighbor(pointCloud,identityTranslation,identityRotation,
-                u,v,mDisplayRotation,depthTcolorPose.translation,depthTcolorPose.rotation);
+
+        // Get the transform from depth camera to OpenGL world at the timestamp of the cloud.
+        TangoSupport.TangoMatrixTransformData transform =
+                TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
+                        TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+                        TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
+                        TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+                        TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+                        TangoSupport.ROTATION_IGNORED);
+        if (transform.statusCode == TangoPoseData.POSE_VALID) {
+            float[] depthPoint = new float[]{point[0], point[1], point[2], 1};
+            float[] openGlPoint = new float[4];
+            Matrix.multiplyMV(openGlPoint, 0, transform.matrix, 0, depthPoint, 0);
+            return openGlPoint;
+        } else {
+            Log.w(TAG, "Could not get depth camera transform at time " + pointCloud.timestamp);
+        }
+        return null;
     }
 
     private void setDisplayRotation() {
@@ -419,12 +450,14 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
         @Override
         public void onPointCloudAvailable(final TangoPointCloudData pointCloud) {
-            if(tangoUx != null){
+            if (tangoUx != null) {
                 tangoUx.updatePointCloud(pointCloud);
             }
             mPointCloudManager.updatePointCloud(pointCloud);
 
-            final double currentTimeStamp = pointCloud.timestamp;
+            if (floorLevel != Float.NaN) {
+
+                final double currentTimeStamp = pointCloud.timestamp;
                 final double pointCloudFrameDelta =
                         (currentTimeStamp - mPointCloudPreviousTimeStamp) * 1000;
                 mPointCloudPreviousTimeStamp = currentTimeStamp;
@@ -433,40 +466,39 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
                 mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
 
-            if(floorLevel != Float.NaN){
-                new AsyncTask<TangoPointCloudData,Integer,Integer>(){
-                    @Override
-                    protected Integer doInBackground(TangoPointCloudData... params) {
-                        TangoPointCloudData pointCloud = params[0];
-                        if(floorLevel != Float.NaN && pointCloud.points != null){
-                            float x,y,z,C,d;
-                            while (pointCloud.points.hasRemaining()){
-                                x = pointCloud.points.get();
-                                y = pointCloud.points.get();
-                                z = pointCloud.points.get();
-//                                C = pointCloud.points.get();
 
-                                d = Math.abs(y-floorLevel);
-                                if (d < ACCURACY){
-                                    synchronized (floorPoints){
+                if (mPointCloudTimeToNextUpdate < 0.0) {
+                    mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
 
-                                        floorPoints.add(new Vector3(x,y,z));
-                                        newPoints = true;
-//                                    Log.d(TAG, String.format("Adding (%1$.3f,%2$.3f,%3$.3f) Distance: %4$.3f, Confidence: %5$.3f",x ,y ,z, d, C ));
-                                    }
-                                }
-//                                else {
-//                                    Log.d(TAG, String.format("Not adding (%1$.3f,%2$.3f,%3$.3f) Distance: %4$.3f, Confidence: %5$.3f",x ,y ,z, d, C ));
-//                                }
+                    if(floorLevel != Float.NaN){
+                        // TODO: Check and add point
+                        float[] position = getDepthAtTouchPosition(0.5f, 0.5f);
+                        if(position != null){
+                            double d = Math.abs(floorLevel - position[1]);
+                            if(d<ACCURACY){
+                                floorPoints.add(new Vector3(position[0],position[1],position[2]));
+                                newPoints=true;
                             }
                         }
-                        return null;
+
+//                    float[] neighbor = doFitPlane(0.5f, 0.5f, pointCloud.timestamp);
+//                    if(neighbor != null && neighbor.length>2){
+//                        Vector3 position = new Matrix4(neighbor).getTranslation();
+//                        double d = Math.abs(position.z - floorLevel);
+//                        if(d<ACCURACY){
+//                            TangoPoseData poseAtTime = tango.getPoseAtTime(pointCloud.timestamp, Tango.COORDINATE_FRAME_ID_START_OF_SERVICE, Tango.COORDINATE_FRAME_ID_DEVICE);
+//                            float[] f = poseAtTime.getTranslationAsFloats();
+//                            floorPoints.add(position);
+//                            newPoints = true;
+//                        }
+//                    }
                     }
-                }.execute(pointCloud);
+                }
+
+
             }
 
         }
-
     }
 
     private float getAveragedDepth(FloatBuffer pointCloudBuffer, int numPoints) {
