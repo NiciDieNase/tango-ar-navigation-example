@@ -34,6 +34,7 @@ import com.projecttango.tangosupport.TangoSupport;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -88,6 +89,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     MapView mapView;
     private TangoSupport.IntersectionPointPlaneModelPair floorPlane = null;
     private int mDisplayRotation;
+    private double mPointCloudPreviousTimeStamp;
+    private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
+    private static final double UPDATE_INTERVAL_MS = 100.0;
+
 
     private static DeviceExtrinsics setupExtrinsics(Tango tango) {
         // Create camera to IMU transform.
@@ -387,6 +392,16 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 tangoUx.updatePointCloud(pointCloud);
             }
             mPointCloudManager.updatePointCloud(pointCloud);
+
+            final double currentTimeStamp = pointCloud.timestamp;
+                final double pointCloudFrameDelta =
+                        (currentTimeStamp - mPointCloudPreviousTimeStamp) * 1000;
+                mPointCloudPreviousTimeStamp = currentTimeStamp;
+                final double averageDepth = getAveragedDepth(pointCloud.points,
+                        pointCloud.numPoints);
+
+                mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
+
             if(floorLevel != Float.NaN){
                 new AsyncTask<TangoPointCloudData,Integer,Integer>(){
                     @Override
@@ -417,5 +432,18 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
         }
 
+    }
+
+    private float getAveragedDepth(FloatBuffer pointCloudBuffer, int numPoints) {
+        float totalZ = 0;
+        float averageZ = 0;
+        if (numPoints != 0) {
+            int numFloats = 4 * numPoints;
+            for (int i = 2; i < numFloats; i = i + 4) {
+                totalZ = totalZ + pointCloudBuffer.get(i);
+            }
+            averageZ = totalZ / numPoints;
+        }
+        return averageZ;
     }
 }
