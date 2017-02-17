@@ -66,13 +66,15 @@ public class QuadTree {
         }
     }
 
-    public void setFilledInvalidate(Vector2 point) {
+    public boolean setFilledInvalidate(Vector2 point) {
         if (!isFilled(point)) {
             setFilled(point);
             if(listener != null){
                 listener.OnQuadTreeUpdate();
             }
+            return true;
         }
+        return false;
     }
 
     public void setListener(QuadTreeDataListener listener) {

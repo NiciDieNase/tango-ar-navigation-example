@@ -27,13 +27,13 @@ public class FloorPlan extends Object3D {
     }
 
     public void setTrajectoryPosition(Vector3 position) {
-        this.addPoint(position);
-        this.rebuildPoints();
+        if(this.addPoint(position))
+            this.rebuildPoints();
     }
 
-    protected void addPoint(Vector3 point) {
+    protected boolean addPoint(Vector3 point) {
         Vector2 p = new Vector2(point.x, point.z);
-        data.setFilledInvalidate(p);
+        return data.setFilledInvalidate(p);
     }
 
     public void rebuildPoints() {

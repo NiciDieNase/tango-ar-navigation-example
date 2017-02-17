@@ -36,6 +36,7 @@ import org.rajawali3d.surface.RajawaliSurfaceView;
 
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import butterknife.Bind;
@@ -92,6 +93,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private double mPointCloudPreviousTimeStamp;
     private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
     private static final double UPDATE_INTERVAL_MS = 100.0;
+    private boolean newPoints = false;
+    private List<Vector3> floorPoints = new ArrayList<Vector3>();
 
 
     private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -284,6 +287,17 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             renderer.updatePointCloud(pointCloud, transform.matrix);
                         }
                     }
+                    if(newPoints){
+                        synchronized (floorPoints){
+                            List<Vector3> points = new ArrayList<Vector3>();
+                            for(Vector3 v : floorPoints){
+                                points.add(v.clone());
+                            }
+                            renderer.addToFloorPlan(points);
+                            floorPoints.clear();
+                            newPoints = false;
+                        }
+                    }
                 }
             }
         });
@@ -310,6 +324,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 Snackbar.make(view,R.string.floorSet,Snackbar.LENGTH_SHORT).show();
                 Log.d(TAG,"Floor level: " + floorLevel);
                 renderer.setFloorLevel(floorLevel);
+                renderer.renderVirtualObjects(true);
 
             } catch (TangoException t) {
                 Toast.makeText(getApplicationContext(),
@@ -429,12 +444,16 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 x = pointCloud.points.get();
                                 y = pointCloud.points.get();
                                 z = pointCloud.points.get();
-                                C = pointCloud.points.get();
+//                                C = pointCloud.points.get();
 
                                 d = Math.abs(y-floorLevel);
                                 if (d < ACCURACY){
-                                    renderer.addToFloorPlan(new Vector3(x,y,z));
+                                    synchronized (floorPoints){
+
+                                        floorPoints.add(new Vector3(x,y,z));
+                                        newPoints = true;
 //                                    Log.d(TAG, String.format("Adding (%1$.3f,%2$.3f,%3$.3f) Distance: %4$.3f, Confidence: %5$.3f",x ,y ,z, d, C ));
+                                    }
                                 }
 //                                else {
 //                                    Log.d(TAG, String.format("Not adding (%1$.3f,%2$.3f,%3$.3f) Distance: %4$.3f, Confidence: %5$.3f",x ,y ,z, d, C ));

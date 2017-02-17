@@ -95,6 +95,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
         mPointCloud = new PointCloud(MAX_NUMBER_OF_POINTS, 4);
         getCurrentScene().addChild(mPointCloud);
+        mPointCloud.setVisible(renderVirtualObjects);
     }
 
     /**
@@ -157,27 +158,29 @@ public class SceneRenderer extends RajawaliRenderer {
 
     @Override
     protected void onRender(long ellapsedRealtime, double deltaTime) {
-        super.onRender(ellapsedRealtime, deltaTime);
-        // add routing cubes to scene graph if available
-        if (fillPath) {
-            for (Cube pathCube : pathCubes) {
-                getCurrentScene().removeChild(pathCube);
-            }
-            pathCubes.clear();
-            PathFinder finder = new PathFinder(floorPlan.getData());
-            try {
-                List<Vector2> path = finder.findPathBetween(startPoint.getPosition(), endPoint.getPosition());
-                for (Vector2 vector2 : path) {
-                    Cube cube = new Cube(0.2f);
-                    cube.setMaterial(blue);
-                    cube.setPosition(new Vector3(vector2.getX(), -1.2, vector2.getY()));
-                    getCurrentScene().addChild(cube);
-                    pathCubes.add(cube);
+        synchronized (this){
+            super.onRender(ellapsedRealtime, deltaTime);
+            // add routing cubes to scene graph if available
+            if (fillPath) {
+                for (Cube pathCube : pathCubes) {
+                    getCurrentScene().removeChild(pathCube);
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "onRender: " + e.getMessage(), e);
-            } finally {
-                fillPath = false;
+                pathCubes.clear();
+                PathFinder finder = new PathFinder(floorPlan.getData());
+                try {
+                    List<Vector2> path = finder.findPathBetween(startPoint.getPosition(), endPoint.getPosition());
+                    for (Vector2 vector2 : path) {
+                        Cube cube = new Cube(0.2f);
+                        cube.setMaterial(blue);
+                        cube.setPosition(new Vector3(vector2.getX(), -1.2, vector2.getY()));
+                        getCurrentScene().addChild(cube);
+                        pathCubes.add(cube);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "onRender: " + e.getMessage(), e);
+                } finally {
+                    fillPath = false;
+                }
             }
         }
     }
@@ -206,11 +209,14 @@ public class SceneRenderer extends RajawaliRenderer {
         renderVirtualObjects = renderObjects;
         if (this.floorPlan != null)
             this.floorPlan.setVisible(renderObjects);
+        if(this.mPointCloud != null)
+            this.mPointCloud.setVisible(renderObjects);
     }
 
-    public void addToFloorPlan(Vector3 position){
-        floorPlan.setTrajectoryPosition(position);
-
+    public void addToFloorPlan(List<Vector3> positions){
+        for(Vector3 v : positions){
+            floorPlan.setTrajectoryPosition(v.clone());
+        }
     }
 
     public void setFloorLevel(double level){
