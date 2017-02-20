@@ -4,6 +4,7 @@ import android.hardware.display.DisplayManager;
 import android.opengl.Matrix;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -63,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     TangoPoseData.COORDINATE_FRAME_DEVICE);
 
     public static final double UPDATE_INTERVAL_MS = 500.0;
-    public static final int POINTCLOUD_SAMPLE_RATE = 100;
+    public static final int POINTCLOUD_SAMPLE_RATE = 10;
     public static final boolean MAP_CENTER = false;
 
     // This changes the Camera Texture and Intrinsics
@@ -95,6 +96,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     TangoUxLayout uxLayout;
     @Bind(R.id.map_view)
     MapView mapView;
+    @Bind(R.id.floatingActionButton)
+    FloatingActionButton floatingActionButton;
     private TangoSupport.IntersectionPointPlaneModelPair floorPlane = null;
     private int mDisplayRotation;
     private double mPointCloudPreviousTimeStamp;
@@ -102,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private boolean newPoints = false;
     private List<Vector3> floorPoints = new ArrayList<Vector3>();
     private TangoImageBuffer mCurrentImageBuffer;
+    private boolean capturePointcloud = false;
 
 
     private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -139,6 +143,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         mapView.setFloorPlanData(renderer.getFloorPlanData());
         mainSurfaceView.setOnTouchListener(this);
         mPointCloudManager = new TangoPointCloudManager();
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                capturePointcloud = true;
+            }
+        });
 
         DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
         if (displayManager != null) {
@@ -485,7 +495,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             }
             mPointCloudManager.updatePointCloud(pointCloud);
 
-            if (floorLevel != Float.NaN) {
+            if (floorLevel != -1000.0f) {
 
                 final double currentTimeStamp = pointCloud.timestamp;
                 final double pointCloudFrameDelta =
@@ -494,13 +504,13 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 final double averageDepth = getAveragedDepth(pointCloud.points,
                         pointCloud.numPoints);
 
-                mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
+//                mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
 
 
-                if (mPointCloudTimeToNextUpdate < 0.0) {
+                if (mPointCloudTimeToNextUpdate < 0.0 || capturePointcloud ) {
                     mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
 
-                    if(floorLevel != -1000.0f && pointCloud.points != null){
+                    if(pointCloud.points != null){
                         AsyncTask<TangoPointCloudData, Integer, List<float[]>> pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<float[]>>() {
 
                             public long start;
@@ -527,7 +537,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                     }
                                 } else {
                                     TangoSupport.TangoMatrixTransformData transform =
-                                            TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
+                                            TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
                                                     TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
                                                     TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
                                                     TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
@@ -543,7 +553,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         if (i == 0) {
 //                                            float[] worldFrame = depthToADFFrame(pointCloud, depthFrame);
 //                                            float[] worldFrame = TangoSupport.transformPoint(transform.matrix,depthFrame);
-                                            float[] worldFrame = frameTransform(pointCloud.timestamp,depthFrame,transform);
+                                            float[] worldFrame = frameTransform(currentTimeStamp,depthFrame,transform);
                                             if (Math.abs(floorLevel - worldFrame[1]) < ACCURACY) {
                                                 result.add(worldFrame);
                                             }
@@ -570,10 +580,13 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         newPoints = true;
                                     }
                                 }
+                                capturePointcloud = false;
                                 Log.d(TAG, "Pointcloud calculations time: " + (System.currentTimeMillis() - start));
                             }
                         };
                         pointCloudTask.execute(pointCloud);
+                    } else {
+                        capturePointcloud = false;
                     }
                 }
 

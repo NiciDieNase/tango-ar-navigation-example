@@ -33,6 +33,15 @@
             app:navigationIcon="@mipmap/ic_navigation_app_color_48dp"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
 
+        <android.support.design.widget.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            app:fabSize="normal"
+            android:layout_gravity="bottom|center_horizontal"
+            app:srcCompat="@android:drawable/ic_menu_camera"
+            android:id="@+id/floatingActionButton"/>
+
         <com.google.atap.tango.ux.TangoUxLayout
             android:id="@+id/tango_ux_layout"
             android:layout_width="match_parent"
