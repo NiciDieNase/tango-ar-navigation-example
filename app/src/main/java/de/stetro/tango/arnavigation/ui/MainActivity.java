@@ -63,8 +63,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
                     TangoPoseData.COORDINATE_FRAME_DEVICE);
 
-    public static final double UPDATE_INTERVAL_MS = 500.0;
-    public static final int POINTCLOUD_SAMPLE_RATE = 10;
+    public static final double UPDATE_INTERVAL_MS = 200.0;
+    public static final int POINTCLOUD_SAMPLE_RATE = 5;
     public static final boolean MAP_CENTER = false;
 
     // This changes the Camera Texture and Intrinsics
@@ -106,6 +106,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private List<Vector3> floorPoints = new ArrayList<Vector3>();
     private TangoImageBuffer mCurrentImageBuffer;
     private boolean capturePointcloud = false;
+    private boolean newPointcloud = false;
 
 
     private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -309,31 +310,36 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             cameraPoseTimestamp = currentPose.timestamp;
                         }
                     }
-                    // Update point cloud data.
-                    TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
-                    if (pointCloud != null) {
-                        // Calculate the camera color pose at the camera frame update time in
-                        // OpenGL engine.
-                        TangoSupport.TangoMatrixTransformData transform =
-                                TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
-                                        TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
-                                        TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-                                        TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-                                        TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-                                        TangoSupport.ROTATION_IGNORED);
-                        if (transform.statusCode == TangoPoseData.POSE_VALID) {
-                            renderer.updatePointCloud(pointCloud, transform.matrix);
+                    if(newPointcloud){
+                        // Update point cloud data.
+                        TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
+                        if (pointCloud != null) {
+                            // Calculate the camera color pose at the camera frame update time in
+                            // OpenGL engine.
+                            TangoSupport.TangoMatrixTransformData transform =
+                                    TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
+                                            TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
+                                            TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
+                                            TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+                                            TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+                                            TangoSupport.ROTATION_IGNORED);
+                            if (transform.statusCode == TangoPoseData.POSE_VALID) {
+                                renderer.updatePointCloud(pointCloud, transform.matrix);
+                            }
                         }
+                        newPointcloud = false;
                     }
                     if (newPoints) {
                         synchronized (floorPoints) {
-                            List<Vector3> points = new ArrayList<Vector3>();
-                            for (Vector3 v : floorPoints) {
-                                points.add(v.clone());
-                            }
-                            renderer.addToFloorPlan(points);
+//                            List<Vector3> points = new ArrayList<Vector3>();
+//                            for (Vector3 v : floorPoints) {
+//                                points.add(v.clone());
+//                            }
+//                            renderer.addToFloorPlan(points);
+                            renderer.addToFloorPlan(floorPoints);
                             if(MAP_CENTER){
-                                renderer.setTrackPosition(points.get(0));
+//                                renderer.setTrackPosition(points.get(0));
+                                renderer.setTrackPosition(floorPoints.get(0));
                             }
                             floorPoints.clear();
                             newPoints = false;
@@ -362,7 +368,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //                }
                 float[] planeFitTransform;
                 synchronized (this) {
-                     // TODO find floor level
                     float[] touchPosition = getDepthAtTouchPosition(u, v, mPointCloudManager.getLatestPointCloud());
                     floorLevel = touchPosition[1];
                     Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
@@ -433,7 +438,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
                     TangoSupport.ROTATION_IGNORED);
         return frameTransform(pointCloud.timestamp,point,transform);
-//        return TangoSupport.transformPoint(transform.matrix,point);
     }
 
     private float[] depthToADFFrame(TangoPointCloudData pointCloud, float[] point) {
@@ -445,7 +449,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
                         TangoSupport.ROTATION_IGNORED);
         return frameTransform(pointCloud.timestamp,point,transform);
-//        return TangoSupport.transformPoint(transform.matrix,point);
     }
 
     private float[] frameTransform(double timestamp, float[] point,TangoSupport.TangoMatrixTransformData transform) {
@@ -494,6 +497,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 tangoUx.updatePointCloud(pointCloud);
             }
             mPointCloudManager.updatePointCloud(pointCloud);
+            newPointcloud = true;
 
             if (floorLevel != -1000.0f) {
 
@@ -504,7 +508,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 final double averageDepth = getAveragedDepth(pointCloud.points,
                         pointCloud.numPoints);
 
-//                mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
+                mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
 
 
                 if (mPointCloudTimeToNextUpdate < 0.0 || capturePointcloud ) {
@@ -556,6 +560,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                             float[] worldFrame = frameTransform(currentTimeStamp,depthFrame,transform);
                                             if (Math.abs(floorLevel - worldFrame[1]) < ACCURACY) {
                                                 result.add(worldFrame);
+                                            } else {
+                                                // TODO add list of obstacles
                                             }
                                             i = POINTCLOUD_SAMPLE_RATE;
                                         } else {
@@ -577,6 +583,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         for (float[] f : floats) {
                                             floorPoints.add(new Vector3(f[0], f[1], f[2]));
                                         }
+//                                        renderer.addToFloorPlan(floorPoints);
                                         newPoints = true;
                                     }
                                 }

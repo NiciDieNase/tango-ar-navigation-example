@@ -31,6 +31,14 @@ public class FloorPlan extends Object3D {
             this.rebuildPoints();
     }
 
+    public void bulkAdd(List<Vector3> positions){
+        // TODO this would be the point to handle obstacles
+        for(Vector3 v : positions){
+            addPoint(v);
+        }
+        rebuildPoints();
+    }
+
     protected boolean addPoint(Vector3 point) {
         Vector2 p = new Vector2(point.x, point.z);
         return data.setFilledInvalidate(p);

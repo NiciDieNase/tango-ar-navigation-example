@@ -60,7 +60,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public SceneRenderer(Context context) {
         super(context);
-        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 10);
+        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
     }
 
     @Override
@@ -224,9 +224,7 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void addToFloorPlan(List<Vector3> positions){
-        for(Vector3 v : positions){
-            floorPlan.setTrajectoryPosition(v);
-        }
+        floorPlan.bulkAdd(positions);
     }
 
     public void setTrackPosition(Vector3 position){
