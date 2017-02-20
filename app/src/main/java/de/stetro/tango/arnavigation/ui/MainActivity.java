@@ -2,6 +2,7 @@ package de.stetro.tango.arnavigation.ui;
 
 import android.hardware.display.DisplayManager;
 import android.opengl.Matrix;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -94,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private int mDisplayRotation;
     private double mPointCloudPreviousTimeStamp;
     private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
-    private static final double UPDATE_INTERVAL_MS = 10.0;
+    private static final double UPDATE_INTERVAL_MS = 50.0;
     private boolean newPoints = false;
     private List<Vector3> floorPoints = new ArrayList<Vector3>();
     private TangoImageBuffer mCurrentImageBuffer;
@@ -402,6 +403,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
 
         // Get the transform from depth camera to OpenGL world at the timestamp of the cloud.
+        float[] openGlPoint = depthToOpenGLFrame(pointCloud, point);
+        if (openGlPoint != null) return openGlPoint;
+        return null;
+    }
+
+    private float[] depthToOpenGLFrame(TangoPointCloudData pointCloud, float[] point) {
         TangoSupport.TangoMatrixTransformData transform =
                 TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
                         TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
@@ -468,19 +475,23 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 
                 if (mPointCloudTimeToNextUpdate < 0.0) {
+
                     mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
 
-                    if(floorLevel != Float.NaN){
-                        // TODO: Check and add point
-                        float[] position = getDepthAtTouchPosition(0.5f, 0.5f);
-                        if(position != null){
-                            double d = Math.abs(floorLevel - position[1]);
-                            if(d<ACCURACY){
-                                floorPoints.add(new Vector3(position[0],position[1],position[2]));
-                                newPoints=true;
-                            }
-                        }
+                    new AsyncTask<Object,Integer,Integer>(){
 
+                        @Override
+                        protected Integer doInBackground(Object... params) {
+                            if(floorLevel != Float.NaN){
+                                // TODO: Check and add point
+                                float[] position = getDepthAtTouchPosition(0.5f, 0.5f);
+                                if(position != null){
+                                    double d = Math.abs(floorLevel - position[1]);
+                                    if(d<ACCURACY){
+                                        floorPoints.add(new Vector3(position[0],position[1],position[2]));
+                                        newPoints=true;
+                                    }
+                                }
 //                    float[] neighbor = doFitPlane(0.5f, 0.5f, pointCloud.timestamp);
 //                    if(neighbor != null && neighbor.length>2){
 //                        Vector3 position = new Matrix4(neighbor).getTranslation();
@@ -492,12 +503,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //                            newPoints = true;
 //                        }
 //                    }
-                    }
+                            }
+                            return null;
+                        }
+                    }.execute();
                 }
-
-
             }
-
         }
     }
 
