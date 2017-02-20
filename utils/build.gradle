@@ -24,5 +24,5 @@ dependencies {
     compile(name: 'TangoSupport_Eisa_Java', ext: 'aar')
     compile(name: 'TangoUX_Eisa_Java', ext: 'aar')
 
-    compile 'org.rajawali3d:rajawali:1.0.294-SNAPSHOT@aar'
+    compile 'org.rajawali3d:rajawali:1.0.325@aar'
 }
