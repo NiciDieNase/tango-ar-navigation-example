@@ -9,15 +9,16 @@ import java.util.List;
 public class QuadTree {
 
     public static final double PLANE_SPACER = 0.02;
+    public static final int OBSTACLE_THRESHOLD = 200;
     private final Vector2 position;
     private final double halfRange;
     private final int depth;
     private final double range;
     private boolean filled = false;
+    private boolean obstacle = false;
     private QuadTree[] children = new QuadTree[4];
     private QuadTreeDataListener listener;
 
-    private long numFloorPoints = 0;
     private long numObstaclePoints = 0;
 
     public QuadTree(Vector2 position, double range, int depth) {
@@ -34,7 +35,7 @@ public class QuadTree {
     }
 
     private void getFilledEdgePointsAsPolygon(ArrayList<Vector2> list) {
-        if (depth == 0 && filled) {
+        if (depth == 0 && filled && (!obstacle)) {
             list.add(new Vector2(position.getX(), position.getY()));
             list.add(new Vector2(position.getX() + range - PLANE_SPACER, position.getY()));
             list.add(new Vector2(position.getX(), position.getY() + range - PLANE_SPACER));
@@ -101,8 +102,7 @@ public class QuadTree {
 
     public void setFilled(Vector2 point) {
         if (depth == 0) {
-            numFloorPoints ++;
-            filled = (numFloorPoints >= numObstaclePoints);
+            filled = true;
         } else {
             int index = getChildIndex(point);
             if (children[index] == null) {
@@ -115,7 +115,7 @@ public class QuadTree {
     public void setObstacle(Vector2 point){
         if(depth == 0){
             numObstaclePoints ++;
-            filled = (numFloorPoints >= numObstaclePoints);
+            obstacle = (numObstaclePoints > OBSTACLE_THRESHOLD);
         } else {
             int index = getChildIndex(point);
             if (children[index] == null) {
@@ -157,7 +157,6 @@ public class QuadTree {
     public void clear() {
         if (depth == 0) {
             filled = false;
-            numFloorPoints = 0;
             numObstaclePoints = 0;
         } else {
             for (QuadTree child : children) {
@@ -170,7 +169,6 @@ public class QuadTree {
 
     public void clearObstacleCount(){
         if (depth == 0) {
-            numFloorPoints = 0;
             numObstaclePoints = 0;
         } else {
             for (QuadTree child : children) {
@@ -185,7 +183,7 @@ public class QuadTree {
         if (outOfRange(to)) {
             return false;
         } else if (depth == 0) {
-            return filled;
+            return filled && (!obstacle);
         } else {
             int index = getChildIndex(to);
             return children[index] != null && children[index].isFilled(to);

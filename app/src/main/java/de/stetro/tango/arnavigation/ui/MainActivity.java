@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     // This changes the Camera Texture and Intrinsics
     protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
     protected static final int INVALID_TEXTURE_ID = -1;
-    private static final double ACCURACY = 0.1;
+    private static final double ACCURACY = 0.15;
     private static final String TAG = MainActivity.class.getSimpleName();
     protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 
@@ -569,7 +569,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                             float[] worldFrame = frameTransform(currentTimeStamp,depthFrame,transform);
                                             if (Math.abs(floorLevel - worldFrame[1]) < ACCURACY) {
                                                 floor.add(worldFrame);
-                                            } else {
+                                            } else if(Math.abs(floorLevel - worldFrame[1]) > ACCURACY * 3) {
                                                 obstacles.add(worldFrame);
                                             }
                                             i = POINTCLOUD_SAMPLE_RATE;
@@ -603,7 +603,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 capturePointcloud = false;
                                 long calcTime = System.currentTimeMillis() - start;
                                 calculationTimes.addValue(calcTime);
-                                Log.d(TAG, "Mean Pointcloud calculations time: " + calculationTimes.getMean() + " last: " + calcTime);
+                                Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d",  calculationTimes.getMean(),calcTime));
                             }
                         };
                         pointCloudTask.execute(pointCloud);
