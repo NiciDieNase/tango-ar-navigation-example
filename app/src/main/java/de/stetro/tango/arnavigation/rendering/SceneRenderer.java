@@ -223,7 +223,7 @@ public class SceneRenderer extends RajawaliRenderer {
             this.mPointCloud.setVisible(renderObjects);
     }
 
-    public void addToFloorPlan(List<Vector3> positions){
+    public void addToFloorPlan(List<List<Vector3>>positions){
         floorPlan.bulkAdd(positions);
     }
 

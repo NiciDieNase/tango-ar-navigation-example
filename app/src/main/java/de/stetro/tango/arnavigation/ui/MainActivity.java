@@ -40,6 +40,7 @@ import org.rajawali3d.surface.RajawaliSurfaceView;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -100,7 +101,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private double mPointCloudPreviousTimeStamp;
     private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
     private boolean newPoints = false;
-    private List<Vector3> floorPoints = new ArrayList<Vector3>();
+    private List<Vector3> floorPoints = new LinkedList<>();
+    private List<Vector3> obstaclePoints = new LinkedList<>();
     private TangoImageBuffer mCurrentImageBuffer;
     private boolean capturePointcloud = false;
     private boolean newPointcloud = false;
@@ -330,7 +332,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //                                points.add(v.clone());
 //                            }
 //                            renderer.addToFloorPlan(points);
-                            renderer.addToFloorPlan(floorPoints);
+                            List<List<Vector3>> points = new ArrayList<List<Vector3>>();
+                            points.add(floorPoints);
+                            points.add(obstaclePoints);
+                            renderer.addToFloorPlan(points);
                             if(MAP_CENTER){
 //                                renderer.setTrackPosition(points.get(0));
                                 renderer.setTrackPosition(floorPoints.get(0));
@@ -363,11 +368,14 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 float[] planeFitTransform;
                 synchronized (this) {
                     float[] touchPosition = getDepthAtTouchPosition(u, v, mPointCloudManager.getLatestPointCloud());
-                    floorLevel = touchPosition[1];
-                    Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
-                    Log.d(TAG, "Floor level: " + floorLevel);
-                    renderer.setFloorLevel(floorLevel);
-                    renderer.renderVirtualObjects(true);
+                    if(touchPosition != null){
+
+                        floorLevel = touchPosition[1];
+                        Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
+                        Log.d(TAG, "Floor level: " + floorLevel);
+                        renderer.setFloorLevel(floorLevel);
+                        renderer.renderVirtualObjects(true);
+                    }
                 }
 
             } catch (TangoException t) {
@@ -509,12 +517,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
 
                     if(pointCloud.points != null){
-                        AsyncTask<TangoPointCloudData, Integer, List<float[]>> pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<float[]>>() {
+                        AsyncTask<TangoPointCloudData, Integer, List<List<float[]>> > pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<List<float[]>> >() {
 
                             public long start;
 
                             @Override
-                            protected List<float[]> doInBackground(TangoPointCloudData... params) {
+                            protected List<List<float[]>> doInBackground(TangoPointCloudData... params) {
                                 start = System.currentTimeMillis();
                                 if (MAP_CENTER) {
 
@@ -523,15 +531,20 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         Log.d(TAG, "Pointcloud: " + openGLFrame[0] + " " + openGLFrame[1] + " " + openGLFrame[2]);
 
                                         double d = Math.abs(floorLevel - openGLFrame[1]);
+                                        List<List<float[]>> result = new ArrayList<>();
+                                        List<float[]> tmpResult = new ArrayList<>(1);
                                         if (d < ACCURACY) {
-                                            List<float[]> result = new ArrayList<float[]>(1);
-                                            result.add(openGLFrame);
+                                            tmpResult.add(openGLFrame);
+                                            result.add(tmpResult);
                                             return result;
                                         } else {
+                                            tmpResult.add(1,openGLFrame);
+                                            return result;
                                             // TODO: add as obstacle
                                         }
                                     } else {
 //                                    Log.d(TAG,"Point is null");
+                                        return null;
                                     }
                                 } else {
                                     TangoSupport.TangoMatrixTransformData transform =
@@ -543,7 +556,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                                     TangoSupport.ROTATION_IGNORED);
                                     FloatBuffer points = pointCloud.points;
                                     float[] depthFrame;
-                                    List<float[]> result = new ArrayList<>();
+                                    List<List<float[]>> result = new ArrayList<>();
+                                    List<float[]> floor = new LinkedList<>();
+                                    List<float[]> obstacles = new LinkedList<>();
                                     int i = POINTCLOUD_SAMPLE_RATE;
                                     while (points.hasRemaining()) {
                                         depthFrame = new float[]{points.get(), points.get(), points.get()};
@@ -553,9 +568,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //                                            float[] worldFrame = TangoSupport.transformPoint(transform.matrix,depthFrame);
                                             float[] worldFrame = frameTransform(currentTimeStamp,depthFrame,transform);
                                             if (Math.abs(floorLevel - worldFrame[1]) < ACCURACY) {
-                                                result.add(worldFrame);
+                                                floor.add(worldFrame);
                                             } else {
-                                                // TODO add list of obstacles
+                                                obstacles.add(worldFrame);
                                             }
                                             i = POINTCLOUD_SAMPLE_RATE;
                                         } else {
@@ -563,19 +578,23 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         }
                                     }
                                     Log.d(TAG, "found floorpoints: " + result.size());
+                                    result.add(0,floor);
+                                    result.add(1,obstacles);
                                     return result;
                                 }
-                                return null;
                             }
 
                             @Override
-                            protected void onPostExecute(List<float[]> floats) {
+                            protected void onPostExecute(List<List<float[]>> floats) {
                                 super.onPostExecute(floats);
                                 if (floats != null) {
                                     synchronized (floorPoints) {
 //                                        floorPoints.add(new Vector3(x,z,-y));
-                                        for (float[] f : floats) {
+                                        for (float[] f : floats.get(0)) {
                                             floorPoints.add(new Vector3(f[0], f[1], f[2]));
+                                        }
+                                        for  (float[] f : floats.get(1)){
+                                            obstaclePoints.add(new Vector3(f[0], f[1], f[2]));
                                         }
 //                                        renderer.addToFloorPlan(floorPoints);
                                         newPoints = true;

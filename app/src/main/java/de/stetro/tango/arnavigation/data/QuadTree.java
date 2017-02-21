@@ -17,6 +17,9 @@ public class QuadTree {
     private QuadTree[] children = new QuadTree[4];
     private QuadTreeDataListener listener;
 
+    private long numFloorPoints = 0;
+    private long numObstaclePoints = 0;
+
     public QuadTree(Vector2 position, double range, int depth) {
         this.position = position;
         this.halfRange = range / 2.0;
@@ -77,19 +80,48 @@ public class QuadTree {
         return false;
     }
 
+    public boolean setFilledInvalidate(List<Vector2> points){
+        boolean updateListener = false;
+        for(Vector2 v: points){
+            if(!isFilled(v)){
+                setFilled(v);
+                updateListener = true;
+            }
+        }
+        if(updateListener){
+            listener.OnQuadTreeUpdate();
+            return true;
+        }
+        return false;
+    }
+
     public void setListener(QuadTreeDataListener listener) {
         this.listener = listener;
     }
 
     public void setFilled(Vector2 point) {
         if (depth == 0) {
-            filled = true;
+            numFloorPoints ++;
+            filled = (numFloorPoints >= numObstaclePoints);
         } else {
             int index = getChildIndex(point);
             if (children[index] == null) {
                 children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
             }
             children[index].setFilled(point);
+        }
+    }
+
+    public void setObstacle(Vector2 point){
+        if(depth == 0){
+            numObstaclePoints ++;
+            filled = (numFloorPoints >= numObstaclePoints);
+        } else {
+            int index = getChildIndex(point);
+            if (children[index] == null) {
+                children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
+            }
+            children[index].setObstacle(point);
         }
     }
 
@@ -125,10 +157,25 @@ public class QuadTree {
     public void clear() {
         if (depth == 0) {
             filled = false;
+            numFloorPoints = 0;
+            numObstaclePoints = 0;
         } else {
             for (QuadTree child : children) {
                 if (child != null) {
                     child.clear();
+                }
+            }
+        }
+    }
+
+    public void clearObstacleCount(){
+        if (depth == 0) {
+            numFloorPoints = 0;
+            numObstaclePoints = 0;
+        } else {
+            for (QuadTree child : children) {
+                if (child != null) {
+                    child.clearObstacleCount();
                 }
             }
         }

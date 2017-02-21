@@ -7,6 +7,7 @@ import org.rajawali3d.math.vector.Vector2;
 import org.rajawali3d.math.vector.Vector3;
 
 import java.nio.FloatBuffer;
+import java.util.LinkedList;
 import java.util.List;
 
 import de.stetro.tango.arnavigation.data.QuadTree;
@@ -31,12 +32,13 @@ public class FloorPlan extends Object3D {
             this.rebuildPoints();
     }
 
-    public void bulkAdd(List<Vector3> positions){
+    public void bulkAdd(List<List<Vector3>> positions){
         // TODO this would be the point to handle obstacles
-        for(Vector3 v : positions){
-            addPoint(v);
-        }
+        addObstacle(positions.get(1));
+        addPoints(positions.get(0));
+        // TODO filter obstacles
         rebuildPoints();
+        data.clearObstacleCount();
     }
 
     protected boolean addPoint(Vector3 point) {
@@ -44,9 +46,23 @@ public class FloorPlan extends Object3D {
         return data.setFilledInvalidate(p);
     }
 
+    protected boolean addPoints(List<Vector3> points){
+        List<Vector2> result = new LinkedList<>();
+        for(Vector3 p : points){
+            result.add(new Vector2(p.x,p.z));
+        }
+        return data.setFilledInvalidate(result);
+    }
+
+    private void addObstacle(List<Vector3> position) {
+        for(Vector3 p : position){
+            data.setObstacle(new Vector2(p.x,p.z));
+        }
+    }
+
     public void rebuildPoints() {
         List<Vector2> filledPoints = data.getFilledEdgePointsAsPolygon();
-        FloatBuffer points = FloatBuffer.allocate(filledPoints.size() * 5);
+        FloatBuffer points = FloatBuffer.allocate(filledPoints.size() * 3);
         for (Vector2 filledPoint : filledPoints) {
             points.put((float) filledPoint.getX());
             points.put(0);
