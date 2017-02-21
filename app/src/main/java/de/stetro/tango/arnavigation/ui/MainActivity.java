@@ -4,7 +4,6 @@ import android.hardware.display.DisplayManager;
 import android.opengl.Matrix;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -96,9 +95,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     TangoUxLayout uxLayout;
     @Bind(R.id.map_view)
     MapView mapView;
-    @Bind(R.id.floatingActionButton)
-    FloatingActionButton floatingActionButton;
-    private TangoSupport.IntersectionPointPlaneModelPair floorPlane = null;
     private int mDisplayRotation;
     private double mPointCloudPreviousTimeStamp;
     private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
@@ -144,12 +140,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         mapView.setFloorPlanData(renderer.getFloorPlanData());
         mainSurfaceView.setOnTouchListener(this);
         mPointCloudManager = new TangoPointCloudManager();
-        floatingActionButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                capturePointcloud = true;
-            }
-        });
 
         DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
         if (displayManager != null) {
