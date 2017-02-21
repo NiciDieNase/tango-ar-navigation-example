@@ -46,7 +46,7 @@ public class FloorPlan extends Object3D {
 
     public void rebuildPoints() {
         List<Vector2> filledPoints = data.getFilledEdgePointsAsPolygon();
-        FloatBuffer points = FloatBuffer.allocate(filledPoints.size() * 3);
+        FloatBuffer points = FloatBuffer.allocate(filledPoints.size() * 5);
         for (Vector2 filledPoint : filledPoints) {
             points.put((float) filledPoint.getX());
             points.put(0);

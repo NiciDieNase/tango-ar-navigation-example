@@ -60,7 +60,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public SceneRenderer(Context context) {
         super(context);
-        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
+        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 8);
     }
 
     @Override

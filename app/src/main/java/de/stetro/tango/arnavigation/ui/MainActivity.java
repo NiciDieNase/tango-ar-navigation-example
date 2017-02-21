@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        tango = new Tango(this);
+        tango = new Tango(this,null);
         tangoUx = new TangoUx(this);
         renderer = new SceneRenderer(this);
 
@@ -234,6 +234,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
         config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DRIFT_CORRECTION, true);
+        TangoSupport.initialize();
         try {
             tango.connect(config);
             ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<>();
@@ -261,7 +262,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     });
 
             setupCameraProperties(tango);
-            TangoSupport.initialize();
         } catch (TangoOutOfDateException e) {
             Log.e(TAG, getString(R.string.exception_out_of_date), e);
             Toast.makeText(this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
