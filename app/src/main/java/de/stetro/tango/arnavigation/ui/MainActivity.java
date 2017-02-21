@@ -33,6 +33,7 @@ import com.projecttango.rajawali.DeviceExtrinsics;
 import com.projecttango.tangosupport.TangoPointCloudManager;
 import com.projecttango.tangosupport.TangoSupport;
 
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
@@ -103,6 +104,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private TangoImageBuffer mCurrentImageBuffer;
     private boolean capturePointcloud = false;
     private boolean newPointcloud = false;
+    private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
 
 
     private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -160,6 +162,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 }
             }, null);
         }
+
+        calculationTimes.setWindowSize(100);
     }
 
     @Override
@@ -578,7 +582,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                     }
                                 }
                                 capturePointcloud = false;
-                                Log.d(TAG, "Pointcloud calculations time: " + (System.currentTimeMillis() - start));
+                                long calcTime = System.currentTimeMillis() - start;
+                                calculationTimes.addValue(calcTime);
+                                Log.d(TAG, "Mean Pointcloud calculations time: " + calculationTimes.getMean() + " last: " + calcTime);
                             }
                         };
                         pointCloudTask.execute(pointCloud);
