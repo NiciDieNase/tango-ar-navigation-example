@@ -9,7 +9,7 @@ import java.util.List;
 public class QuadTree {
 
     public static final double PLANE_SPACER = 0.02;
-    public static final int OBSTACLE_THRESHOLD = 200;
+    public static final int OBSTACLE_THRESHOLD = 70;
     private final Vector2 position;
     private final double halfRange;
     private final int depth;
@@ -102,7 +102,8 @@ public class QuadTree {
 
     public void setFilled(Vector2 point) {
         if (depth == 0) {
-            filled = true;
+            if(!obstacle)
+                filled = true;
         } else {
             int index = getChildIndex(point);
             if (children[index] == null) {
@@ -115,7 +116,10 @@ public class QuadTree {
     public void setObstacle(Vector2 point){
         if(depth == 0){
             numObstaclePoints ++;
-            obstacle = (numObstaclePoints > OBSTACLE_THRESHOLD);
+            if(numObstaclePoints > OBSTACLE_THRESHOLD){
+                obstacle = true;
+                filled = false;
+            }
         } else {
             int index = getChildIndex(point);
             if (children[index] == null) {

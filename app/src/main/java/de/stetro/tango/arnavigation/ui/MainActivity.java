@@ -64,14 +64,15 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
                     TangoPoseData.COORDINATE_FRAME_DEVICE);
 
-    public static final double UPDATE_INTERVAL_MS = 200.0;
+    public static final double UPDATE_INTERVAL_MS = 500.0;
     public static final int POINTCLOUD_SAMPLE_RATE = 5;
     public static final boolean MAP_CENTER = false;
+    private static final double ACCURACY = 0.1;
+    private static final double OBSTACLE_HEIGHT = 0.4;
 
     // This changes the Camera Texture and Intrinsics
     protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
     protected static final int INVALID_TEXTURE_ID = -1;
-    private static final double ACCURACY = 0.15;
     private static final String TAG = MainActivity.class.getSimpleName();
     protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 
