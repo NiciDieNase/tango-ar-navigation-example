@@ -35,7 +35,7 @@ public class QuadTree {
     }
 
     private void getFilledEdgePointsAsPolygon(ArrayList<Vector2> list) {
-        if (depth == 0 && filled && (!obstacle)) {
+        if (filled || (depth == 0 && filled) ) {
             list.add(new Vector2(position.getX(), position.getY()));
             list.add(new Vector2(position.getX() + range - PLANE_SPACER, position.getY()));
             list.add(new Vector2(position.getX(), position.getY() + range - PLANE_SPACER));
@@ -230,6 +230,16 @@ public class QuadTree {
                 children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
             }
             children[index].forceFilled(v);
+        }
+    }
+
+    public boolean isFull(){
+        if(depth == 0 && filled){
+            return true;
+        } else {
+            this.filled = children[0].isFull() && children[1].isFull() &&
+                    children[2].isFull() && children[3].isFull();
+            return filled;
         }
     }
 

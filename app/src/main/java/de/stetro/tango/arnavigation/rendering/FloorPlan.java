@@ -61,6 +61,7 @@ public class FloorPlan extends Object3D {
     }
 
     public void rebuildPoints() {
+        data.isFull();
         List<Vector2> filledPoints = data.getFilledEdgePointsAsPolygon();
         if(filledPoints.size() == Integer.MAX_VALUE){
             throw new RuntimeException("Reached MAX_INT");
