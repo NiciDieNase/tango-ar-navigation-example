@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     public static final double UPDATE_INTERVAL_MS = 500.0;
     public static final int POINTCLOUD_SAMPLE_RATE = 5;
     public static final boolean MAP_CENTER = false;
-    private static final double ACCURACY = 0.1;
+    private static final double ACCURACY = 0.15;
     private static final double OBSTACLE_HEIGHT = 0.4;
 
     // This changes the Camera Texture and Intrinsics
@@ -598,9 +598,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //                                            float[] worldFrame = depthToADFFrame(pointCloud, depthFrame);
 //                                            float[] worldFrame = TangoSupport.transformPoint(transform.matrix,depthFrame);
                                             float[] worldFrame = frameTransform(currentTimeStamp,depthFrame,transform);
-                                            if (Math.abs(floorLevel - worldFrame[1]) < ACCURACY) {
+                                            double d = Math.abs(floorLevel - worldFrame[1]);
+                                            if (d < ACCURACY) {
                                                 floor.add(worldFrame);
-                                            } else if(Math.abs(floorLevel - worldFrame[1]) > ACCURACY * 3) {
+                                            } else if(d > OBSTACLE_HEIGHT) {
                                                 obstacles.add(worldFrame);
                                             }
                                             i = POINTCLOUD_SAMPLE_RATE;
