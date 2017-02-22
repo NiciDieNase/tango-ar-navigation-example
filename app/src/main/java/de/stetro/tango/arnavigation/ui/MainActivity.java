@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private List<Vector3> floorPoints = new LinkedList<>();
     private List<Vector3> obstaclePoints = new LinkedList<>();
     private TangoImageBuffer mCurrentImageBuffer;
-    private boolean capturePointcloud = false;
+    private boolean capturePointcloud = true;
     private boolean newPointcloud = false;
     private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
 
@@ -152,7 +152,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                capturePointcloud = true;
+                capturePointcloud = !capturePointcloud;
+                if(capturePointcloud){
+                    floatingActionButton.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_pause));
+                } else {
+                    floatingActionButton.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
+                }
             }
         });
 
@@ -524,7 +529,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
 
 
-                if (mPointCloudTimeToNextUpdate < 0.0 || capturePointcloud ) {
+                if (mPointCloudTimeToNextUpdate < 0.0 && capturePointcloud ) {
                     if(calculationTimes.getN()>20){
                         mPointCloudTimeToNextUpdate = Math.max(UPDATE_INTERVAL_MS,calculationTimes.getMean());
                     } else {
@@ -615,7 +620,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         newPoints = true;
                                     }
                                 }
-                                capturePointcloud = false;
                                 long calcTime = System.currentTimeMillis() - start;
                                 calculationTimes.addValue(calcTime);
                                 Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d",  calculationTimes.getMean(),calcTime));
@@ -623,8 +627,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             }
                         };
                         pointCloudTask.execute(pointCloud);
-                    } else {
-                        capturePointcloud = false;
                     }
                 }
 
