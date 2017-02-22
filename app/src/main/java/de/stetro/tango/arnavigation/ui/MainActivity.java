@@ -518,7 +518,11 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 
                 if (mPointCloudTimeToNextUpdate < 0.0 || capturePointcloud ) {
-                    mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
+                    if(calculationTimes.getN()>20){
+                        mPointCloudTimeToNextUpdate = Math.max(UPDATE_INTERVAL_MS,calculationTimes.getMean());
+                    } else {
+                        mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
+                    }
 
                     if(pointCloud.points != null){
                         AsyncTask<TangoPointCloudData, Integer, List<List<float[]>> > pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<List<float[]>> >() {
