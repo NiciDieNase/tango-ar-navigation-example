@@ -614,6 +614,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 long calcTime = System.currentTimeMillis() - start;
                                 calculationTimes.addValue(calcTime);
                                 Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d",  calculationTimes.getMean(),calcTime));
+                                Log.d(TAG, String.format("New average floor level %1$.3f, Stats: %2$s",floorLevel.getMean(),floorLevel.toString()));
                             }
                         };
                         pointCloudTask.execute(pointCloud);
