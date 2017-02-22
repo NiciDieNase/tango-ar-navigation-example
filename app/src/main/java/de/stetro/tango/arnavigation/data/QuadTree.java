@@ -10,6 +10,7 @@ public class QuadTree {
 
     public static final double PLANE_SPACER = 0.02;
     public static final int OBSTACLE_THRESHOLD = 100;
+    private static final String TAG = QuadTree.class.getSimpleName();
     private final Vector2 position;
     private final double halfRange;
     private final int depth;
@@ -110,6 +111,7 @@ public class QuadTree {
                 children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
             }
             children[index].setFilled(point);
+            this.setFilledIfChildrenAreFilled();
         }
     }
 
@@ -186,7 +188,7 @@ public class QuadTree {
     public boolean isFilled(Vector2 to) {
         if (outOfRange(to)) {
             return false;
-        } else if (depth == 0) {
+        } else if (depth == 0 || filled) {
             return filled;
         } else {
             int index = getChildIndex(to);
@@ -233,13 +235,47 @@ public class QuadTree {
         }
     }
 
-    public boolean isFull(){
-        if(depth == 0 && filled){
-            return true;
-        } else {
-            this.filled = children[0].isFull() && children[1].isFull() &&
-                    children[2].isFull() && children[3].isFull();
+    public boolean consolidate(){
+        if(depth == 0 && filled) {
             return filled;
+        } else if(depth == 1){
+            /* If three out of four quadrands are filled on the lowest level,
+            we accept the whole quadrant as filled */
+            int n = 0;
+            for(QuadTree c : children){
+                if(c != null && c.filled)
+                    n++;
+            }
+            if(n>=3){
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            boolean f = true;
+            for(QuadTree c : children){
+                if(c == null){
+                    return false;
+                }
+                f = f && c.consolidate();
+            }
+            return this.filled = f;
+        }
+    }
+
+    public boolean setFilledIfChildrenAreFilled(){
+        if(depth == 0){
+            return filled;
+        } else {
+            boolean f = true;
+            for(QuadTree c : children){
+                if(c != null && f){
+                    f = f && c.filled;
+                } else {
+                    return false;
+                }
+            }
+            return this.filled = f;
         }
     }
 
