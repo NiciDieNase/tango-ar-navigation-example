@@ -123,6 +123,7 @@ public class SceneRenderer extends RajawaliRenderer {
         getCurrentCamera().setRotation(cameraPose.getOrientation());
         getCurrentCamera().setPosition(cameraPose.getPosition());
 //        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
+        floorPlan.forceAdd(cameraPose.getPosition());
     }
 
     /**
@@ -270,6 +271,6 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void manuelUpdate(float[] point){
-        floorPlan.forceAdd(new Vector2(point[0],point[2]));
+        floorPlan.forceAdd(new Vector3(point[0],point[1],point[2]));
     }
 }

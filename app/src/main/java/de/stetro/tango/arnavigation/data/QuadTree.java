@@ -115,6 +115,8 @@ public class QuadTree {
 
     public void setObstacle(Vector2 point){
         if(depth == 0){
+            if(obstacle)
+                return;
             numObstaclePoints ++;
             if(numObstaclePoints > OBSTACLE_THRESHOLD){
                 obstacle = true;
@@ -220,7 +222,7 @@ public class QuadTree {
     public void forceFilled(Vector2 v) {
         if(depth == 0){
             filled = true;
-            obstacle = false;
+//            obstacle = false;
         } else {
             int index = getChildIndex(v);
             if (children[index] == null) {
