@@ -61,10 +61,11 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderPointCloud = true;
     private PointCloud mPointCloud;
     private Sphere TrackPoint;
+    private Line3D line;
 
     public SceneRenderer(Context context) {
         super(context);
-        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 8);
+        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
     }
 
     @Override
@@ -200,7 +201,8 @@ public class SceneRenderer extends RajawaliRenderer {
                         curvePath.calculatePoint(v,i / 100f);
                         linePoints.add(v);
                     }
-                    Line3D line = new Line3D(linePoints, 10, Color.BLUE);
+                    getCurrentScene().removeChild(line);
+                    line = new Line3D(linePoints, 10, Color.BLUE);
                     line.setMaterial(blue);
                     getCurrentScene().addChild(line);
                 } catch (Exception e) {

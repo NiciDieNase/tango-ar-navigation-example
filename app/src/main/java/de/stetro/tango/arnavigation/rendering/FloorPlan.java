@@ -62,6 +62,9 @@ public class FloorPlan extends Object3D {
 
     public void rebuildPoints() {
         List<Vector2> filledPoints = data.getFilledEdgePointsAsPolygon();
+        if(filledPoints.size() == Integer.MAX_VALUE){
+            throw new RuntimeException("Reached MAX_INT");
+        }
         FloatBuffer points = FloatBuffer.allocate(filledPoints.size() * 3);
         for (Vector2 filledPoint : filledPoints) {
             points.put((float) filledPoint.getX());
@@ -113,6 +116,6 @@ public class FloorPlan extends Object3D {
 
     public void forceAdd(Vector3 v){
         data.forceFilled(new Vector2(v.x,v.z));
-        rebuildPoints();
+        this.rebuildPoints();
     }
 }

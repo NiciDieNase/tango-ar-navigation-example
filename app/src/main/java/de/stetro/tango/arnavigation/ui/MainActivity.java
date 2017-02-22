@@ -348,17 +348,11 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     }
                     if (newPoints) {
                         synchronized (floorPoints) {
-//                            List<Vector3> points = new ArrayList<Vector3>();
-//                            for (Vector3 v : floorPoints) {
-//                                points.add(v.clone());
-//                            }
-//                            renderer.addToFloorPlan(points);
                             List<List<Vector3>> points = new ArrayList<List<Vector3>>();
                             points.add(floorPoints);
                             points.add(obstaclePoints);
                             renderer.addToFloorPlan(points);
                             if(MAP_CENTER){
-//                                renderer.setTrackPosition(points.get(0));
                                 renderer.setTrackPosition(floorPoints.get(0));
                             }
                             floorPoints.clear();
@@ -534,8 +528,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 final double pointCloudFrameDelta =
                         (currentTimeStamp - mPointCloudPreviousTimeStamp) * 1000;
                 mPointCloudPreviousTimeStamp = currentTimeStamp;
-                final double averageDepth = getAveragedDepth(pointCloud.points,
-                        pointCloud.numPoints);
 
                 mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
 
@@ -646,18 +638,5 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             }
 
         }
-    }
-
-    private float getAveragedDepth(FloatBuffer pointCloudBuffer, int numPoints) {
-        float totalZ = 0;
-        float averageZ = 0;
-        if (numPoints != 0) {
-            int numFloats = 4 * numPoints;
-            for (int i = 2; i < numFloats; i = i + 4) {
-                totalZ = totalZ + pointCloudBuffer.get(i);
-            }
-            averageZ = totalZ / numPoints;
-        }
-        return averageZ;
     }
 }
