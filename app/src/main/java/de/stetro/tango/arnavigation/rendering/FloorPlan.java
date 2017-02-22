@@ -111,5 +111,7 @@ public class FloorPlan extends Object3D {
         this.floorLevel = floorLevel;
     }
 
-
+    public void forceAdd(Vector2 v){
+        data.forceFilled(v);
+    }
 }

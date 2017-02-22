@@ -268,4 +268,8 @@ public class SceneRenderer extends RajawaliRenderer {
     public boolean getRenderPointCloud(){
         return renderPointCloud;
     }
+
+    public void manuelUpdate(float[] point){
+        floorPlan.forceAdd(new Vector2(point[0],point[2]));
+    }
 }

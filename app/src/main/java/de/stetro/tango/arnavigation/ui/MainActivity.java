@@ -112,6 +112,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private boolean capturePointcloud = true;
     private boolean newPointcloud = false;
     private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
+    private boolean manualAdd = false;
+    private float[] manualPoint;
 
 
     private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -363,6 +365,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             newPoints = false;
                         }
                     }
+                    if (manualAdd){
+                        renderer.manuelUpdate(manualPoint);
+                        manualAdd = false;
+                    }
                 }
             }
         });
@@ -384,16 +390,18 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //                } else {
 //                    Snackbar.make(view,R.string.no_depth_data, Snackbar.LENGTH_SHORT).show();
 //                }
-                float[] planeFitTransform;
+//                float[] planeFitTransform;
                 synchronized (this) {
                     float[] touchPosition = getDepthAtTouchPosition(u, v, mPointCloudManager.getLatestPointCloud());
                     if(touchPosition != null){
-
                         floorLevel = touchPosition[1];
                         Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
                         Log.d(TAG, "Floor level: " + floorLevel);
                         renderer.setFloorLevel(floorLevel);
                         renderer.renderVirtualObjects(true);
+
+                        manualPoint = touchPosition;
+                        manualAdd = true;
                     }
                 }
 

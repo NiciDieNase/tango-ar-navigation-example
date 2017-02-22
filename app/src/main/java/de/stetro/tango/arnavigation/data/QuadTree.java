@@ -217,6 +217,19 @@ public class QuadTree {
         return a;
     }
 
+    public void forceFilled(Vector2 v) {
+        if(depth == 0){
+            filled = true;
+            obstacle = false;
+        } else {
+            int index = getChildIndex(v);
+            if (children[index] == null) {
+                children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
+            }
+            children[index].forceFilled(v);
+        }
+    }
+
     public interface QuadTreeDataListener {
 
         void OnQuadTreeUpdate();
