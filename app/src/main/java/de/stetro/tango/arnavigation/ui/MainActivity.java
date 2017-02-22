@@ -70,15 +70,13 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private static final double ACCURACY = 0.1;
     private static final double OBSTACLE_HEIGHT = 0.4;
 
-    private DescriptiveStatistics floorLevel = new DescriptiveStatistics();
-
     // This changes the Camera Texture and Intrinsics
     protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
     protected static final int INVALID_TEXTURE_ID = -1;
     private static final String TAG = MainActivity.class.getSimpleName();
     protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 
-//    private double floorLevel = -1000.0f;
+    private double floorLevel = -1000.0f;
     protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
     protected Tango tango;
     protected TangoUx tangoUx;
@@ -169,7 +167,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
 
         calculationTimes.setWindowSize(100);
-        floorLevel.setWindowSize(10000);
     }
 
     @Override
@@ -374,10 +371,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     float[] touchPosition = getDepthAtTouchPosition(u, v, mPointCloudManager.getLatestPointCloud());
                     if(touchPosition != null){
 
-                        floorLevel.addValue(touchPosition[1]);
+                        floorLevel = touchPosition[1];
                         Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
                         Log.d(TAG, "Floor level: " + floorLevel);
-                        renderer.setFloorLevel(floorLevel.getMean());
+                        renderer.setFloorLevel(floorLevel);
                         renderer.renderVirtualObjects(true);
                     }
                 }
@@ -505,7 +502,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             mPointCloudManager.updatePointCloud(pointCloud);
             newPointcloud = true;
 
-            if (floorLevel.getN() > 0) {
+            if (floorLevel != -1000.0f) {
 
                 final double currentTimeStamp = pointCloud.timestamp;
                 final double pointCloudFrameDelta =
@@ -538,7 +535,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                     if (openGLFrame != null) {
                                         Log.d(TAG, "Pointcloud: " + openGLFrame[0] + " " + openGLFrame[1] + " " + openGLFrame[2]);
 
-                                        double d = Math.abs(floorLevel.getMean() - openGLFrame[1]);
+                                        double d = Math.abs(floorLevel - openGLFrame[1]);
                                         List<List<float[]>> result = new ArrayList<>();
                                         List<float[]> tmpResult = new ArrayList<>(1);
                                         if (d < ACCURACY) {
@@ -575,11 +572,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //                                            float[] worldFrame = depthToADFFrame(pointCloud, depthFrame);
 //                                            float[] worldFrame = TangoSupport.transformPoint(transform.matrix,depthFrame);
                                             float[] worldFrame = frameTransform(currentTimeStamp,depthFrame,transform);
-                                            double distance = floorLevel.getMean() - worldFrame[1];
-                                            if (Math.abs(distance) < ACCURACY) {
+                                            if (Math.abs(floorLevel - worldFrame[1]) < ACCURACY) {
                                                 floor.add(worldFrame);
-                                                floorLevel.addValue(worldFrame[1]);
-                                            } else if(Math.abs(distance) > OBSTACLE_HEIGHT) {
+                                            } else if(Math.abs(floorLevel - worldFrame[1]) > ACCURACY * 3) {
                                                 obstacles.add(worldFrame);
                                             }
                                             i = POINTCLOUD_SAMPLE_RATE;
@@ -614,7 +609,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 long calcTime = System.currentTimeMillis() - start;
                                 calculationTimes.addValue(calcTime);
                                 Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d",  calculationTimes.getMean(),calcTime));
-                                Log.d(TAG, String.format("New average floor level %1$.3f, Stats: %2$s",floorLevel.getMean(),floorLevel.toString()));
+//                                Log.d(TAG, String.format("New average floor level %1$.3f, Stats: %2$s",floorLevel.getMean(),floorLevel.toString()));
                             }
                         };
                         pointCloudTask.execute(pointCloud);
