@@ -10,4 +10,5 @@
     <string name="exception_out_of_date">"Tango service outdated!"</string>
     <string name="exception_tango_error">"Tango exception!"</string>
     <string name="exception_tango_invalid">"Tango invalid exception! Try again!"</string>
+    <string name="toggle_pointcloud">Toggle Pointcloud</string>
 </resources>

@@ -14,6 +14,7 @@ import com.projecttango.rajawali.DeviceExtrinsics;
 import com.projecttango.rajawali.Pose;
 import com.projecttango.rajawali.ScenePoseCalculator;
 
+import org.rajawali3d.curves.CatmullRomCurve3D;
 import org.rajawali3d.lights.DirectionalLight;
 import org.rajawali3d.materials.Material;
 import org.rajawali3d.materials.textures.ATexture;
@@ -23,12 +24,14 @@ import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector2;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.primitives.Cube;
+import org.rajawali3d.primitives.Line3D;
 import org.rajawali3d.primitives.ScreenQuad;
 import org.rajawali3d.primitives.Sphere;
 import org.rajawali3d.renderer.RajawaliRenderer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -55,6 +58,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean fillPath = false;
     private Material blue;
     private boolean renderVirtualObjects;
+    private boolean renderPointCloud = true;
     private PointCloud mPointCloud;
     private Sphere TrackPoint;
 
@@ -98,7 +102,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
         mPointCloud = new PointCloud(MAX_NUMBER_OF_POINTS, 4);
         getCurrentScene().addChild(mPointCloud);
-        mPointCloud.setVisible(renderVirtualObjects);
+        mPointCloud.setVisible(renderPointCloud);
 
         if(MainActivity.MAP_CENTER){
             TrackPoint = new Sphere(0.05f,20,20);
@@ -177,15 +181,27 @@ public class SceneRenderer extends RajawaliRenderer {
                 }
                 pathCubes.clear();
                 PathFinder finder = new PathFinder(floorPlan.getData());
+                CatmullRomCurve3D curvePath = new CatmullRomCurve3D();
                 try {
                     List<Vector2> path = finder.findPathBetween(startPoint.getPosition(), endPoint.getPosition());
                     for (Vector2 vector2 : path) {
-                        Cube cube = new Cube(0.2f);
-                        cube.setMaterial(blue);
-                        cube.setPosition(new Vector3(vector2.getX(), -1.2, vector2.getY()));
-                        getCurrentScene().addChild(cube);
-                        pathCubes.add(cube);
+//                        Cube cube = new Cube(0.2f);
+//                        cube.setMaterial(blue);
+//                        cube.setPosition(new Vector3(vector2.getX(), -1.2, vector2.getY()));
+//                        getCurrentScene().addChild(cube);
+//                        pathCubes.add(cube);
+
+                        curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
+                    Stack linePoints = new Stack();
+                    for (int i = 0; i < 100; i++) {
+                        Vector3 v = new Vector3();
+                        curvePath.calculatePoint(v,i / 100f);
+                        linePoints.add(v);
+                    }
+                    Line3D line = new Line3D(linePoints, 10, Color.BLUE);
+                    line.setMaterial(blue);
+                    getCurrentScene().addChild(line);
                 } catch (Exception e) {
                     Log.e(TAG, "onRender: " + e.getMessage(), e);
                 } finally {
@@ -241,5 +257,15 @@ public class SceneRenderer extends RajawaliRenderer {
         mPointCloud.setPosition(openGlTdepthMatrix.getTranslation());
         // Conjugating the Quaternion is need because Rajawali uses left handed convention.
         mPointCloud.setOrientation(new Quaternion().fromMatrix(openGlTdepthMatrix).conjugate());
+    }
+
+    public boolean showPointCloud(boolean show){
+        this.renderPointCloud = show;
+        mPointCloud.setVisible(renderPointCloud);
+        return renderPointCloud;
+    }
+
+    public boolean getRenderPointCloud(){
+        return renderPointCloud;
     }
 }

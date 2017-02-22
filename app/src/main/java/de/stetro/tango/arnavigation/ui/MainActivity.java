@@ -229,6 +229,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 renderer.setEndPoint(getCurrentPose(), extrinsics
                 );
                 break;
+            case R.id.toggle_point_cloud:
+                renderer.showPointCloud(!renderer.getRenderPointCloud());
+                break;
         }
         return super.onOptionsItemSelected(item);
     }

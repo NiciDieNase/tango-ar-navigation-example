@@ -15,4 +15,8 @@
         android:title="@string/set_end_point"
         app:showAsAction="ifRoom"/>
 
+    <item
+        android:id="@+id/toggle_point_cloud"
+        android:title="@string/toggle_pointcloud"/>
+
 </menu>
