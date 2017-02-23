@@ -1,11 +1,18 @@
 package de.stetro.tango.arnavigation.ui;
 
+import android.Manifest;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.opengl.Matrix;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -137,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        tango = new Tango(this,null);
+//        tango = new Tango(this,null);
         tangoUx = new TangoUx(this);
         renderer = new SceneRenderer(this);
 
@@ -192,8 +199,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         synchronized (this) {
             if (tangoIsConnected.compareAndSet(false, true)) {
                 try {
-                    connectTango();
-                    connectRenderer();
+                    if(checkAndRequestPermissions()){
+                        connectTango();
+                        connectRenderer();
+                    }
                 } catch (TangoOutOfDateException e) {
                     message(R.string.exception_out_of_date);
                 }
@@ -205,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     protected void onPause() {
         super.onPause();
         synchronized (this) {
-            if (tangoIsConnected.compareAndSet(true, false)) {
+            if (tangoIsConnected.compareAndSet(true, false) && tango != null) {
                 renderer.getCurrentScene().clearFrameCallbacks();
                 tango.disconnectCamera(ACTIVE_CAMERA_INTRINSICS);
                 connectedTextureId = INVALID_TEXTURE_ID;
@@ -249,52 +258,66 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 
     protected void connectTango() {
-        TangoUx.StartParams params = new TangoUx.StartParams();
-        tangoUx.start(params);
+        tango = new Tango(this, new Runnable() {
+            @Override
+            public void run() {
+                synchronized (this){
+                    try {
+                        TangoSupport.initialize();
+                        TangoConfig config = getTangoConfig();
+                        tango.connect(config);
+                        TangoUx.StartParams params = new TangoUx.StartParams();
+                        tangoUx.start(params);
+                        ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<>();
+                        framePairs.add(SOS_T_DEVICE_FRAME_PAIR);
+                        framePairs.add(DEVICE_T_PREVIOUS_FRAME_PAIR);
+                        tango.connectListener(framePairs, new mTangoUpdateListener());
+
+                        tango.experimentalConnectOnFrameListener(TangoCameraIntrinsics.TANGO_CAMERA_COLOR,
+                                new Tango.OnFrameAvailableListener() {
+                                    @Override
+                                    public void onFrameAvailable(TangoImageBuffer tangoImageBuffer, int i) {
+                                        mCurrentImageBuffer = copyImageBuffer(tangoImageBuffer);
+                                    }
+
+                                    TangoImageBuffer copyImageBuffer(TangoImageBuffer imageBuffer) {
+                                        ByteBuffer clone = ByteBuffer.allocateDirect(imageBuffer.data.capacity());
+                                        imageBuffer.data.rewind();
+                                        clone.put(imageBuffer.data);
+                                        imageBuffer.data.rewind();
+                                        clone.flip();
+                                        return new TangoImageBuffer(imageBuffer.width, imageBuffer.height,
+                                                imageBuffer.stride, imageBuffer.frameNumber,
+                                                imageBuffer.timestamp, imageBuffer.format, clone);
+                                    }
+                                });
+
+                        setupCameraProperties(tango);
+                    } catch (TangoOutOfDateException e) {
+                        Log.e(TAG, getString(R.string.exception_out_of_date), e);
+                        Toast.makeText(MainActivity.this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
+                    } catch (TangoErrorException e) {
+                        Log.e(TAG, getString(R.string.exception_tango_error), e);
+                        Toast.makeText(MainActivity.this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
+                    } catch (TangoInvalidException e) {
+                        Log.e(TAG, getString(R.string.exception_tango_invalid), e);
+                        Toast.makeText(MainActivity.this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+
+    }
+
+    @NonNull
+    private TangoConfig getTangoConfig() {
         TangoConfig config = tango.getConfig(TangoConfig.CONFIG_TYPE_DEFAULT);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_LOWLATENCYIMUINTEGRATION, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
         config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DRIFT_CORRECTION, true);
-        TangoSupport.initialize();
-        try {
-            tango.connect(config);
-            ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<>();
-            framePairs.add(SOS_T_DEVICE_FRAME_PAIR);
-            framePairs.add(DEVICE_T_PREVIOUS_FRAME_PAIR);
-            tango.connectListener(framePairs, new mTangoUpdateListener());
-
-            tango.experimentalConnectOnFrameListener(TangoCameraIntrinsics.TANGO_CAMERA_COLOR,
-                    new Tango.OnFrameAvailableListener() {
-                        @Override
-                        public void onFrameAvailable(TangoImageBuffer tangoImageBuffer, int i) {
-                            mCurrentImageBuffer = copyImageBuffer(tangoImageBuffer);
-                        }
-
-                        TangoImageBuffer copyImageBuffer(TangoImageBuffer imageBuffer) {
-                            ByteBuffer clone = ByteBuffer.allocateDirect(imageBuffer.data.capacity());
-                            imageBuffer.data.rewind();
-                            clone.put(imageBuffer.data);
-                            imageBuffer.data.rewind();
-                            clone.flip();
-                            return new TangoImageBuffer(imageBuffer.width, imageBuffer.height,
-                                    imageBuffer.stride, imageBuffer.frameNumber,
-                                    imageBuffer.timestamp, imageBuffer.format, clone);
-                        }
-                    });
-
-            setupCameraProperties(tango);
-        } catch (TangoOutOfDateException e) {
-            Log.e(TAG, getString(R.string.exception_out_of_date), e);
-            Toast.makeText(this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
-        } catch (TangoErrorException e) {
-            Log.e(TAG, getString(R.string.exception_tango_error), e);
-            Toast.makeText(this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
-        } catch (TangoInvalidException e) {
-            Log.e(TAG, getString(R.string.exception_tango_invalid), e);
-            Toast.makeText(this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
-        }
+        return config;
     }
 
 
@@ -638,5 +661,41 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             }
 
         }
+    }
+
+    private boolean hasCameraPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED;
+    }
+
+        private boolean checkAndRequestPermissions() {
+        if (!hasCameraPermission()) {
+            requestCameraPermission();
+            return false;
+        }
+        return true;
+    }
+
+        private void requestCameraPermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+            showRequestPermissionRationale();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
+                    0);
+        }
+    }
+
+        private void showRequestPermissionRationale() {
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setMessage("AR Navigation requires camera permission")
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{Manifest.permission.CAMERA}, 0);
+                    }
+                })
+                .create();
+        dialog.show();
     }
 }

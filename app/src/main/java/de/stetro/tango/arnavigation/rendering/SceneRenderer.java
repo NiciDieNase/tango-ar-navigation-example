@@ -155,10 +155,12 @@ public class SceneRenderer extends RajawaliRenderer {
      * provided by the {@code TangoCameraIntrinsics}.
      */
     public void setProjectionMatrix(TangoCameraIntrinsics intrinsics) {
-        Matrix4 projectionMatrix = ScenePoseCalculator.calculateProjectionMatrix(
-                intrinsics.width, intrinsics.height,
-                intrinsics.fx, intrinsics.fy, intrinsics.cx, intrinsics.cy);
-        getCurrentCamera().setProjectionMatrix(projectionMatrix);
+        if(intrinsics != null){
+            Matrix4 projectionMatrix = ScenePoseCalculator.calculateProjectionMatrix(
+                    intrinsics.width, intrinsics.height,
+                    intrinsics.fx, intrinsics.fy, intrinsics.cx, intrinsics.cy);
+            getCurrentCamera().setProjectionMatrix(projectionMatrix);
+        }
     }
 
     @Override
