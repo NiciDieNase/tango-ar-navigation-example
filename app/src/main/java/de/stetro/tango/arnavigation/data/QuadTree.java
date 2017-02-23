@@ -235,37 +235,17 @@ public class QuadTree {
         }
     }
 
-    public boolean consolidate(){
-        if(depth == 0 && filled) {
-            return filled;
-        } else if(depth == 1){
-            /* If three out of four quadrands are filled on the lowest level,
-            we accept the whole quadrant as filled */
-            int n = 0;
-            for(QuadTree c : children){
-                if(c != null && c.filled)
-                    n++;
-            }
-            if(n>=3){
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            boolean f = true;
-            for(QuadTree c : children){
-                if(c == null){
-                    return false;
-                }
-                f = f && c.consolidate();
-            }
-            return this.filled = f;
-        }
-    }
-
     public boolean setFilledIfChildrenAreFilled(){
         if(depth == 0){
             return filled;
+//        } else if(depth == 1){
+//            int n = 0;
+//            for(QuadTree c : children){
+//                if(c != null && c.filled){
+//                    n++;
+//                }
+//            }
+//            return n>=3;
         } else {
             boolean f = true;
             for(QuadTree c : children){
