@@ -369,23 +369,23 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         }
                         newPointcloud = false;
                     }
-                    if (newPoints) {
-                        synchronized (floorPoints) {
-                            List<List<Vector3>> points = new ArrayList<List<Vector3>>();
-                            points.add(floorPoints);
-                            points.add(obstaclePoints);
-                            renderer.addToFloorPlan(points);
-                            if(MAP_CENTER){
-                                renderer.setTrackPosition(floorPoints.get(0));
-                            }
-                            floorPoints.clear();
-                            newPoints = false;
+                }
+                if (newPoints) {
+                    synchronized (floorPoints) {
+                        List<List<Vector3>> points = new ArrayList<List<Vector3>>();
+                        points.add(floorPoints);
+                        points.add(obstaclePoints);
+                        renderer.addToFloorPlan(points);
+                        if(MAP_CENTER){
+                            renderer.setTrackPosition(floorPoints.get(0));
                         }
+                        floorPoints.clear();
+                        newPoints = false;
                     }
-                    if (manualAdd){
-                        renderer.manuelUpdate(manualPoint);
-                        manualAdd = false;
-                    }
+                }
+                if (manualAdd){
+                    renderer.manuelUpdate(manualPoint);
+                    manualAdd = false;
                 }
             }
         });
