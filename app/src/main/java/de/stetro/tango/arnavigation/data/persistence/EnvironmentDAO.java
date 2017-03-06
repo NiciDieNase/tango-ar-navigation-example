@@ -8,7 +8,31 @@ import com.orm.SugarRecord;
 
 public class EnvironmentDAO extends SugarRecord {
 
-    QuadTreeDAO rootNode;
+    long rootNodeId;
     double floorLevel;
     String ADFUUID;
+
+    public long getRootNodeId() {
+        return rootNodeId;
+    }
+
+    public void setRootNodeId(long rootNodeId) {
+        this.rootNodeId = rootNodeId;
+    }
+
+    public double getFloorLevel() {
+        return floorLevel;
+    }
+
+    public void setFloorLevel(double floorLevel) {
+        this.floorLevel = floorLevel;
+    }
+
+    public String getADFUUID() {
+        return ADFUUID;
+    }
+
+    public void setADFUUID(String ADFUUID) {
+        this.ADFUUID = ADFUUID;
+    }
 }
