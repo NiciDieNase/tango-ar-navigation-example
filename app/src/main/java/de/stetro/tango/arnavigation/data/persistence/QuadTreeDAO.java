@@ -4,6 +4,8 @@ import com.orm.SugarRecord;
 
 import org.rajawali3d.math.vector.Vector2;
 
+import java.util.List;
+
 import de.stetro.tango.arnavigation.data.QuadTree;
 
 /**
@@ -19,37 +21,68 @@ public class QuadTreeDAO extends SugarRecord{
 	private boolean obstacle;
 	private double range;
 	private int childIndex;
-	private QuadTreeDAO parent;
+	private long parentId;
 
 	public QuadTreeDAO(){}
 
-	public QuadTreeDAO(double x, double y, int depth, boolean filled, boolean obstacle, int childIndex, QuadTreeDAO parent) {
+	public QuadTreeDAO(double x, double y, int depth, boolean filled, boolean obstacle, int childIndex, long parentId) {
 		this.x = x;
 		this.y = y;
 		this.depth = depth;
 		this.filled = filled;
 		this.obstacle = obstacle;
 		this.childIndex = childIndex;
-		this.parent = parent;
+		this.parentId = parentId;
 	}
 
 	public static long persist(QuadTree node){
-		return persisit(node,-1,null);
+		return persisit(node,-1,0);
 	}
 
-	public static long persisit(QuadTree node, int index, QuadTreeDAO parent){
+	private static long persisit(QuadTree node, int index, long parentId){
 		Vector2 position = node.getPosition();
-		QuadTreeDAO newNode = new QuadTreeDAO(position.getX(),position.getY(),node.getDepth(),node.isFilled(),node.isObstacle(),index,parent);
+		QuadTreeDAO newNode = new QuadTreeDAO(position.getX(),position.getY(),node.getDepth(),node.isFilled(),node.isObstacle(),index,parentId);
 		newNode.save();
 		QuadTree[] children = node.getChildren();
 		if(node.getDepth() > 0){
 			for(int i = 0; i < children.length; i++ ){
 				if(children[i] != null){
-					persisit(children[i],i,parent);
+					persisit(children[i],i,parentId);
 				}
 			}
 		}
 		return newNode.getId();
+	}
+
+	public static QuadTree loadTreeFromRootNode(long id){
+		QuadTreeDAO rootDAO = QuadTreeDAO.findById(QuadTreeDAO.class, id);
+		QuadTree root = getObjectFromDAO(rootDAO);
+		recursiveLoad(rootDAO,root);
+		return root;
+	}
+
+	private static void recursiveLoad(QuadTreeDAO dao, QuadTree node){
+		loadChildren(dao,node);
+		for(QuadTreeDAO daoChild :dao.getChildren()){
+			recursiveLoad(daoChild,node.getChildren()[daoChild.getChildIndex()]);
+		}
+	}
+
+	private static QuadTree loadChildren(QuadTreeDAO dao, QuadTree node){
+		List<QuadTreeDAO> childrenDAOs = dao.getChildren();
+		QuadTree[] children = new QuadTree[4];
+		for(QuadTreeDAO childDAO: childrenDAOs){
+			children[childDAO.getChildIndex()] = getObjectFromDAO(childDAO);
+		}
+		node.setChildren(children);
+		return node;
+	}
+
+	private static QuadTree getObjectFromDAO(QuadTreeDAO dao){
+		QuadTree quadTree = new QuadTree(new Vector2(dao.getX(),dao.getY()), dao.getRange(), dao.getDepth());
+		quadTree.setFilled(dao.isFilled());
+		quadTree.setObstacle(dao.isObstacle());
+		return quadTree;
 	}
 
 	public double getY() {
@@ -108,11 +141,8 @@ public class QuadTreeDAO extends SugarRecord{
 		this.childIndex = childIndex;
 	}
 
-	public QuadTreeDAO getParent() {
-		return parent;
-	}
 
-	public void setParent(QuadTreeDAO parent) {
-		this.parent = parent;
+	public List<QuadTreeDAO> getChildren(){
+		return QuadTreeDAO.find(QuadTreeDAO.class, "parent = ?", String.valueOf(this.parentId),"", "child_index","");
 	}
 }

@@ -17,12 +17,13 @@ public class QuadTree {
     private final double halfRange;
     private final int depth;
     private final double range;
+
     private boolean filled = false;
+
     private boolean obstacle = false;
     private QuadTree[] children = new QuadTree[4];
     private QuadTreeDataListener listener;
     private long numObstaclePoints = 0;
-
     public QuadTree(Vector2 position, double range, int depth) {
         this.position = position;
         this.halfRange = range / 2.0;
@@ -52,6 +53,18 @@ public class QuadTree {
 
     public QuadTree[] getChildren() {
         return children;
+    }
+
+    public void setFilled(boolean filled) {
+        this.filled = filled;
+    }
+
+    public void setObstacle(boolean obstacle){
+        this.obstacle = obstacle;
+    }
+
+    public void setChildren(QuadTree[] children) {
+        this.children = children;
     }
 
     public List<Vector2> getFilledEdgePointsAsPolygon() {
