@@ -356,7 +356,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING,true);
         config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_DRIFT_CORRECTION, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
         return config;
     }
