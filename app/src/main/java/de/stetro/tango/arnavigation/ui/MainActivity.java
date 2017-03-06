@@ -21,6 +21,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.google.atap.tango.ux.TangoUx;
@@ -55,6 +56,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import de.stetro.tango.arnavigation.R;
+import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
+import de.stetro.tango.arnavigation.data.persistence.QuadTreeDAO;
 import de.stetro.tango.arnavigation.rendering.SceneRenderer;
 import de.stetro.tango.arnavigation.ui.util.ScenePreFrameCallbackAdapter;
 import de.stetro.tango.arnavigation.ui.views.MapView;
@@ -82,6 +85,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
     protected static final int INVALID_TEXTURE_ID = -1;
     private static final String TAG = MainActivity.class.getSimpleName();
+    public static final boolean LEARNINGMODE_ENABLED = true;
     protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 
     private double floorLevel = -1000.0f;
@@ -106,8 +110,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     TangoUxLayout uxLayout;
     @Bind(R.id.map_view)
     MapView mapView;
-    @Bind(R.id.floatingActionButton)
-    FloatingActionButton floatingActionButton;
+    @Bind(R.id.fab_pause)
+    FloatingActionButton fabPause;
+    @Bind(R.id.fab_save)
+    FloatingActionButton fabSave;
+    @Bind(R.id.progressSpinner)
+    ProgressBar progressSpinner;
     private TangoSupport.IntersectionPointPlaneModelPair floorPlane = null;
     private int mDisplayRotation;
     private double mPointCloudPreviousTimeStamp;
@@ -158,15 +166,46 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         mapView.setFloorPlanData(renderer.getFloorPlanData());
         mainSurfaceView.setOnTouchListener(this);
         mPointCloudManager = new TangoPointCloudManager();
-        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+        fabPause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 capturePointcloud = !capturePointcloud;
                 if(capturePointcloud){
-                    floatingActionButton.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_pause));
+                    fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_pause));
                 } else {
-                    floatingActionButton.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
+                    fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
                 }
+            }
+        });
+
+        startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE),
+                Tango.TANGO_INTENT_ACTIVITYCODE);
+
+        fabSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                capturePointcloud = false;
+                new AsyncTask<Object, Object, Long>(){
+                    @Override
+                    protected void onPreExecute() {
+                        progressSpinner.setVisibility(View.VISIBLE);
+                    }
+
+                    @Override
+                    protected Long doInBackground(Object... params) {
+                        String uuid = tango.saveAreaDescription();
+                        long treeId = QuadTreeDAO.persist(renderer.getFloorPlanData());
+                        EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid,treeId,renderer.getFloorLevel());
+                        environmentDAO.save();
+                        return environmentDAO.getId();
+                    }
+
+                    @Override
+                    protected void onPostExecute(Long id) {
+                        progressSpinner.setVisibility(View.INVISIBLE);
+                        Log.d(TAG,"Saved environment with id :" + id);
+                    }
+                }.doInBackground();
             }
         });
 
@@ -295,13 +334,13 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         setupCameraProperties(tango);
                     } catch (TangoOutOfDateException e) {
                         Log.e(TAG, getString(R.string.exception_out_of_date), e);
-                        Toast.makeText(MainActivity.this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(MainActivity.this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
                     } catch (TangoErrorException e) {
                         Log.e(TAG, getString(R.string.exception_tango_error), e);
-                        Toast.makeText(MainActivity.this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(MainActivity.this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
                     } catch (TangoInvalidException e) {
                         Log.e(TAG, getString(R.string.exception_tango_invalid), e);
-                        Toast.makeText(MainActivity.this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(MainActivity.this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -315,8 +354,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         config.putBoolean(TangoConfig.KEY_BOOLEAN_LOWLATENCYIMUINTEGRATION, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
+        config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING,true);
         config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DRIFT_CORRECTION, true);
+        config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
         return config;
     }
 

@@ -277,4 +277,8 @@ public class SceneRenderer extends RajawaliRenderer {
     public void manuelUpdate(float[] point){
         floorPlan.forceAdd(new Vector3(point[0],point[1],point[2]));
     }
+
+    public double getFloorLevel(){
+        return floorPlan.getFloorLevel();
+    }
 }
