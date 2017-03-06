@@ -11,7 +11,9 @@ public class QuadTree {
     public static final double PLANE_SPACER = 0.02;
     public static final int OBSTACLE_THRESHOLD = 100;
     private static final String TAG = QuadTree.class.getSimpleName();
+
     private final Vector2 position;
+
     private final double halfRange;
     private final int depth;
     private final double range;
@@ -19,7 +21,6 @@ public class QuadTree {
     private boolean obstacle = false;
     private QuadTree[] children = new QuadTree[4];
     private QuadTreeDataListener listener;
-
     private long numObstaclePoints = 0;
 
     public QuadTree(Vector2 position, double range, int depth) {
@@ -27,6 +28,30 @@ public class QuadTree {
         this.halfRange = range / 2.0;
         this.depth = depth;
         this.range = range;
+    }
+
+    public Vector2 getPosition() {
+        return position;
+    }
+
+    public int getDepth() {
+        return depth;
+    }
+
+    public double getRange() {
+        return range;
+    }
+
+    public boolean isFilled() {
+        return filled;
+    }
+
+    public boolean isObstacle() {
+        return obstacle;
+    }
+
+    public QuadTree[] getChildren() {
+        return children;
     }
 
     public List<Vector2> getFilledEdgePointsAsPolygon() {
