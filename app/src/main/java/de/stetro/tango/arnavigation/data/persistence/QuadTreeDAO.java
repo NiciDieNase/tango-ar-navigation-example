@@ -143,6 +143,6 @@ public class QuadTreeDAO extends SugarRecord{
 
 
     public List<QuadTreeDAO> getChildren(){
-        return QuadTreeDAO.find(QuadTreeDAO.class, "parent_id = ?", String.valueOf(this.parentId),"", "child_index","");
+        return QuadTreeDAO.find(QuadTreeDAO.class, "parent_id = ?", String.valueOf(this.parentId));
     }
 }

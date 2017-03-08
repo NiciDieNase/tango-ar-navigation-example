@@ -167,6 +167,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 adfuuid = environment.getADFUUID();
                 floorLevel = environment.getFloorLevel();
                 tree = QuadTreeDAO.loadTreeFromRootNode(environment.getRootNodeId());
+                capturePointcloud = false;
+                fabPause.hide();
+                fabSave.hide();
             }
         }
 
@@ -216,6 +219,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     protected void onPreExecute() {
                         showLoadingSpinner();
                         fabSave.hide();
+                        fabPause.hide();
                         Log.d(TAG,"Saving environment");
                     }
 
