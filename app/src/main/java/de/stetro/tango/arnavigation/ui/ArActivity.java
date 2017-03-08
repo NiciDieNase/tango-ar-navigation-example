@@ -65,7 +65,7 @@ import de.stetro.tango.arnavigation.ui.util.ScenePreFrameCallbackAdapter;
 import de.stetro.tango.arnavigation.ui.views.MapView;
 
 
-public class MainActivity extends AppCompatActivity implements View.OnTouchListener {
+public class ArActivity extends AppCompatActivity implements View.OnTouchListener {
 
     // frame pairs for adf based ar pose tracking
     public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     // This changes the Camera Texture and Intrinsics
     protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
     protected static final int INVALID_TEXTURE_ID = -1;
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = ArActivity.class.getSimpleName();
     public static final boolean LEARNINGMODE_ENABLED = true;
     public static final String KEY_ENVIRONMENT_ID = "environment_id";
     protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
@@ -238,10 +238,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     protected void onPostExecute(Long id) {
                         hideLoadingSpinner();
                         Log.d(TAG,"Saved environment with id :" + id);
-                        Intent i = new Intent(MainActivity.this, MainActivity.class);
+                        Intent i = new Intent(ArActivity.this, ArActivity.class);
                         i.putExtra(KEY_ENVIRONMENT_ID,id);
                         startActivity(i);
-                        MainActivity.this.finish();
+                        ArActivity.this.finish();
                     }
                 }.execute();
             }
@@ -381,13 +381,13 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         setupCameraProperties(tango);
                     } catch (TangoOutOfDateException e) {
                         Log.e(TAG, getString(R.string.exception_out_of_date), e);
-//                        Toast.makeText(MainActivity.this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(ArActivity.this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
                     } catch (TangoErrorException e) {
                         Log.e(TAG, getString(R.string.exception_tango_error), e);
-//                        Toast.makeText(MainActivity.this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(ArActivity.this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
                     } catch (TangoInvalidException e) {
                         Log.e(TAG, getString(R.string.exception_tango_invalid), e);
-//                        Toast.makeText(MainActivity.this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(ArActivity.this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -420,7 +420,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         renderer.getCurrentScene().registerFrameCallback(new ScenePreFrameCallbackAdapter() {
             @Override
             public void onPreFrame(long sceneTime, double deltaTime) {
-                synchronized (MainActivity.this) {
+                synchronized (ArActivity.this) {
                     if (!tangoIsConnected.get()) {
                         return;
                     }
@@ -782,7 +782,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        ActivityCompat.requestPermissions(MainActivity.this,
+                        ActivityCompat.requestPermissions(ArActivity.this,
                                 new String[]{Manifest.permission.CAMERA}, 0);
                     }
                 })

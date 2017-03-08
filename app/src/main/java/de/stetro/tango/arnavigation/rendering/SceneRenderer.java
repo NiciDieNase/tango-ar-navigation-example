@@ -37,7 +37,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 import de.stetro.tango.arnavigation.data.PathFinder;
 import de.stetro.tango.arnavigation.data.QuadTree;
-import de.stetro.tango.arnavigation.ui.MainActivity;
+import de.stetro.tango.arnavigation.ui.ArActivity;
 
 
 public class SceneRenderer extends RajawaliRenderer {
@@ -110,7 +110,7 @@ public class SceneRenderer extends RajawaliRenderer {
         getCurrentScene().addChild(mPointCloud);
         mPointCloud.setVisible(renderPointCloud);
 
-        if(MainActivity.MAP_CENTER){
+        if(ArActivity.MAP_CENTER){
             TrackPoint = new Sphere(0.05f,20,20);
             TrackPoint.setVisible(renderVirtualObjects);
             TrackPoint.setMaterial(tangoCameraMaterial);
