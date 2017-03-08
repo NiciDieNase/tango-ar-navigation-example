@@ -158,7 +158,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
         super.onCreate(savedInstanceState);
 
         Bundle extras = getIntent().getExtras();
-        double floorLevel = -1.4;
         QuadTree tree = null;
         if(extras != null){
             long environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
@@ -209,11 +208,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
         startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE),
                 Tango.TANGO_INTENT_ACTIVITYCODE);
 
-        final double finalFloorLevel = floorLevel;
         fabSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 capturePointcloud = false;
+                final double finalFloorLevel = floorLevel;
                 new AsyncTask<Object, Object, Long>(){
                     @Override
                     protected void onPreExecute() {
@@ -226,6 +225,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
                     @Override
                     protected Long doInBackground(Object... params) {
                         long treeId = QuadTreeDAO.persist(renderer.getFloorPlanData());
+
                         String uuid = tango.saveAreaDescription();
                         Log.d(TAG,"Saved ADF");
                         EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid,treeId, finalFloorLevel);

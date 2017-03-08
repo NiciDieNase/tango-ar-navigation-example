@@ -1,5 +1,7 @@
 package de.stetro.tango.arnavigation.data.persistence;
 
+import android.util.Log;
+
 import com.orm.SugarRecord;
 
 import org.rajawali3d.math.vector.Vector2;
@@ -14,6 +16,7 @@ import de.stetro.tango.arnavigation.data.QuadTree;
 
 public class QuadTreeDAO extends SugarRecord{
 
+    private static final String TAG = QuadTreeDAO.class.getSimpleName();
     private double x;
     private double y;
     private int depth;
@@ -25,7 +28,7 @@ public class QuadTreeDAO extends SugarRecord{
 
     public QuadTreeDAO(){}
 
-    public QuadTreeDAO(double x, double y, int depth, boolean filled, boolean obstacle, int childIndex, long parentId) {
+    public QuadTreeDAO(double x, double y, int depth, double range, boolean filled, boolean obstacle, int childIndex, long parentId) {
         this.x = x;
         this.y = y;
         this.depth = depth;
@@ -36,12 +39,12 @@ public class QuadTreeDAO extends SugarRecord{
     }
 
     public static long persist(QuadTree node){
-        return persisit(node,-1,0);
+        return persisit(node,0,0);
     }
 
-    private static long persisit(QuadTree node, int index, long parentId){
+    private static long persisit(QuadTree node, int childIndex, long parentId){
         Vector2 position = node.getPosition();
-        QuadTreeDAO newNode = new QuadTreeDAO(position.getX(),position.getY(),node.getDepth(),node.isFilled(),node.isObstacle(),index,parentId);
+        QuadTreeDAO newNode = new QuadTreeDAO(position.getX(),position.getY(),node.getDepth(),node.getRange(),node.isFilled(),node.isObstacle(),childIndex,parentId);
         newNode.save();
         QuadTree[] children = node.getChildren();
         if(node.getDepth() > 0){
@@ -72,7 +75,12 @@ public class QuadTreeDAO extends SugarRecord{
         List<QuadTreeDAO> childrenDAOs = dao.getChildren();
         QuadTree[] children = new QuadTree[4];
         for(QuadTreeDAO childDAO: childrenDAOs){
-            children[childDAO.getChildIndex()] = getObjectFromDAO(childDAO);
+            int childIndex = childDAO.getChildIndex();
+            if(0 <= childIndex && childIndex < 4){
+                children[childIndex] = getObjectFromDAO(childDAO);
+            } else {
+                Log.d(TAG,"Index out of Range");
+            }
         }
         node.setChildren(children);
         return node;
