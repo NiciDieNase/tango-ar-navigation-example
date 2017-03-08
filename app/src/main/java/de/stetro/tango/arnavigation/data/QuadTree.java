@@ -3,10 +3,11 @@ package de.stetro.tango.arnavigation.data;
 
 import org.rajawali3d.math.vector.Vector2;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class QuadTree {
+public class QuadTree implements Serializable, Cloneable{
 
     public static final double PLANE_SPACER = 0.02;
     public static final int OBSTACLE_THRESHOLD = 100;
@@ -19,16 +20,31 @@ public class QuadTree {
     private final double range;
 
     private boolean filled = false;
-
     private boolean obstacle = false;
+
     private QuadTree[] children = new QuadTree[4];
     private QuadTreeDataListener listener;
     private long numObstaclePoints = 0;
+
     public QuadTree(Vector2 position, double range, int depth) {
         this.position = position;
         this.halfRange = range / 2.0;
         this.depth = depth;
         this.range = range;
+    }
+
+    public QuadTree clone(){
+        QuadTree clone = new QuadTree(new Vector2(position.getX(), position.getY()), range, depth);
+        clone.setFilled(filled);
+        clone.setObstacle(obstacle);
+        QuadTree[] cloneChildren = new QuadTree[4];
+        for(int i=0;i<4;i++){
+            if(children[i] != null){
+                cloneChildren[i] = children[i].clone();
+            }
+        }
+        clone.setChildren(cloneChildren);
+        return clone;
     }
 
     public Vector2 getPosition() {
