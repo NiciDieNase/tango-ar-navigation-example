@@ -68,6 +68,11 @@ public class SceneRenderer extends RajawaliRenderer {
         data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
     }
 
+    public SceneRenderer(Context context, QuadTree data){
+        super(context);
+        this.data = data;
+    }
+
     @Override
     protected void initScene() {
         // Create a quad covering the whole background and assign a texture to it where the

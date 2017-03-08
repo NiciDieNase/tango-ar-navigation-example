@@ -47,7 +47,7 @@ public class QuadTreeDAO extends SugarRecord{
         if(node.getDepth() > 0){
             for(int i = 0; i < children.length; i++ ){
                 if(children[i] != null){
-                    persisit(children[i],i,parentId);
+                    persisit(children[i],i,newNode.getId());
                 }
             }
         }
@@ -143,6 +143,6 @@ public class QuadTreeDAO extends SugarRecord{
 
 
     public List<QuadTreeDAO> getChildren(){
-        return QuadTreeDAO.find(QuadTreeDAO.class, "parent = ?", String.valueOf(this.parentId),"", "child_index","");
+        return QuadTreeDAO.find(QuadTreeDAO.class, "parent_id = ?", String.valueOf(this.parentId),"", "child_index","");
     }
 }

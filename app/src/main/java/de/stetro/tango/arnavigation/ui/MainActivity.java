@@ -2,6 +2,7 @@ package de.stetro.tango.arnavigation.ui;
 
 import android.Manifest;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.opengl.Matrix;
@@ -56,6 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import de.stetro.tango.arnavigation.R;
+import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
 import de.stetro.tango.arnavigation.data.persistence.QuadTreeDAO;
 import de.stetro.tango.arnavigation.rendering.SceneRenderer;
@@ -86,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     protected static final int INVALID_TEXTURE_ID = -1;
     private static final String TAG = MainActivity.class.getSimpleName();
     public static final boolean LEARNINGMODE_ENABLED = true;
+    public static final String KEY_ENVIRONMENT_ID = "environment_id";
     protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 
     private double floorLevel = -1000.0f;
@@ -129,6 +132,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
     private boolean manualAdd = false;
     private float[] manualPoint;
+    private String adfuuid = "";
 
 
     private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -152,13 +156,34 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Bundle extras = getIntent().getExtras();
+        double floorLevel = -1.4;
+        QuadTree tree = null;
+        if(extras != null){
+            long environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
+            if(environment_id != 0){
+                EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
+                adfuuid = environment.getADFUUID();
+                floorLevel = environment.getFloorLevel();
+                tree = QuadTreeDAO.loadTreeFromRootNode(environment.getRootNodeId());
+            }
+        }
+
 //        tango = new Tango(this,null);
         tangoUx = new TangoUx(this);
-        renderer = new SceneRenderer(this);
+
+        if(tree != null){
+            renderer = new SceneRenderer(this,tree);
+            renderer.setFloorLevel(floorLevel);
+        } else {
+            renderer = new SceneRenderer(this);
+        }
 
         setContentView(R.layout.main_layout);
         ButterKnife.bind(this);
         setSupportActionBar(toolbar);
+
         tangoUx.setLayout(uxLayout);
         renderer.renderVirtualObjects(true);
         mainSurfaceView.setSurfaceRenderer(renderer);
@@ -181,6 +206,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE),
                 Tango.TANGO_INTENT_ACTIVITYCODE);
 
+        final double finalFloorLevel = floorLevel;
         fabSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -188,24 +214,32 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 new AsyncTask<Object, Object, Long>(){
                     @Override
                     protected void onPreExecute() {
-                        progressSpinner.setVisibility(View.VISIBLE);
+                        showLoadingSpinner();
+                        fabSave.hide();
+                        Log.d(TAG,"Saving environment");
                     }
 
                     @Override
                     protected Long doInBackground(Object... params) {
-                        String uuid = tango.saveAreaDescription();
                         long treeId = QuadTreeDAO.persist(renderer.getFloorPlanData());
-                        EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid,treeId,renderer.getFloorLevel());
+                        String uuid = tango.saveAreaDescription();
+                        Log.d(TAG,"Saved ADF");
+                        EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid,treeId, finalFloorLevel);
                         environmentDAO.save();
+                        Log.d(TAG,"Saved environment");
                         return environmentDAO.getId();
                     }
 
                     @Override
                     protected void onPostExecute(Long id) {
-                        progressSpinner.setVisibility(View.INVISIBLE);
+                        hideLoadingSpinner();
                         Log.d(TAG,"Saved environment with id :" + id);
+                        Intent i = new Intent(MainActivity.this, MainActivity.class);
+                        i.putExtra(KEY_ENVIRONMENT_ID,id);
+                        startActivity(i);
+                        MainActivity.this.finish();
                     }
-                }.doInBackground();
+                }.execute();
             }
         });
 
@@ -230,6 +264,15 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
 
         calculationTimes.setWindowSize(100);
+    }
+
+    private void hideLoadingSpinner() {
+        progressSpinner.setVisibility(View.INVISIBLE);
+    }
+
+    private void showLoadingSpinner() {
+        progressSpinner.setVisibility(View.VISIBLE);
+        progressSpinner.setIndeterminate(true);
     }
 
     @Override
@@ -356,7 +399,11 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING,true);
         config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
+        if(adfuuid.equals("")){
+            config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
+        } else {
+            config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION, adfuuid);
+        }
         return config;
     }
 
