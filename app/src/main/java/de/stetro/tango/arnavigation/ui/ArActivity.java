@@ -83,6 +83,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
+	public static final TangoCoordinateFramePair ADF_T_DEVICE_FRAME_PAIR =
+			new TangoCoordinateFramePair(
+					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+					TangoPoseData.COORDINATE_FRAME_DEVICE);
 
 	public static final double UPDATE_INTERVAL_MS = 500.0;
 	public static final int POINTCLOUD_SAMPLE_RATE = 5;
@@ -130,16 +134,20 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private int mDisplayRotation;
 	private double mPointCloudPreviousTimeStamp;
 	private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
-	private boolean newPoints = false;
 	private List<Vector3> floorPoints = new LinkedList<>();
 	private List<Vector3> obstaclePoints = new LinkedList<>();
 	private TangoImageBuffer mCurrentImageBuffer;
-	private boolean capturePointcloud = true;
-	private boolean newPointcloud = false;
 	private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
-	private boolean manualAdd = false;
 	private float[] manualPoint;
 	private String adfuuid = "";
+	QuadTree tree = null;
+
+	private boolean capturePointcloud = true;
+	private boolean manualAdd = false;
+	private boolean newPointcloud = false;
+	private boolean newPoints = false;
+	private boolean newQuadtree = false;
+	private boolean localized = false;
 
 
 	private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -169,16 +177,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		setSupportActionBar(toolbar);
 
 		Bundle extras = getIntent().getExtras();
-		QuadTree tree = null;
+
 		if (extras != null) {
 			long environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
 				EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
-				loadEnvironment(environment.getId());
 				adfuuid = environment.getADFUUID();
 				floorLevel = environment.getFloorLevel();
 //                tree = QuadTreeDAO.loadTreeFromRootNode(environment.getRootNodeId());
-				loadFromFile(environment.getADFUUID());
+				tree = loadFromFile(environment.getADFUUID());
 				capturePointcloud = false;
 				fabPause.hide();
 				fabSave.hide();
@@ -190,7 +197,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 		if (tree != null) {
 			renderer = new SceneRenderer(this, tree);
-			renderer.setFloorLevel(floorLevel);
 		} else {
 			renderer = new SceneRenderer(this);
 		}
@@ -336,7 +342,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		progressBar.setVisibility(View.VISIBLE);
 		progressBar.setProgress(0);
 		progressBar.setMax(3);
-//        progressBar.setIndeterminate(true);
+        progressBar.setIndeterminate(false);
 	}
 
 	@Override
@@ -455,7 +461,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				}
 			}
 		});
-
+		if(tree != null){
+			renderer.setFloorLevel(floorLevel);
+		}
 	}
 
 	@NonNull
@@ -476,7 +484,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 
 	public TangoPoseData getCurrentPose() {
-		return tango.getPoseAtTime(rgbFrameTimestamp, SOS_T_DEVICE_FRAME_PAIR);
+		return tango.getPoseAtTime(rgbFrameTimestamp, ADF_T_DEVICE_FRAME_PAIR);
 	}
 
 	protected void connectRenderer() {
@@ -523,6 +531,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						}
 						newPointcloud = false;
 					}
+					if(newQuadtree){
+						renderer.setFloorLevel(floorLevel);
+						renderer.setQuadTree(tree);
+
+						newQuadtree = false;
+					}
+					if(localized){
+						renderer.renderFloorPlan(true);
+					}
 				}
 				if (newPoints) {
 					synchronized (floorPoints) {
@@ -543,6 +560,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				}
 			}
 		});
+
 	}
 
 	@Override
@@ -693,6 +711,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		public void onPoseAvailable(TangoPoseData pose) {
 			if (tangoUx != null) {
 				tangoUx.updatePoseStatus(pose.statusCode);
+			}
+			if(pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION){
+				localized = true;
 			}
 		}
 

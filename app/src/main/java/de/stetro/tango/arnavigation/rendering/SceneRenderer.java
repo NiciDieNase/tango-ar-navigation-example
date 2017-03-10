@@ -45,7 +45,7 @@ public class SceneRenderer extends RajawaliRenderer {
     public static final int QUAD_TREE_RANGE = 120;
     private static final String TAG = SceneRenderer.class.getSimpleName();
     private static final int MAX_NUMBER_OF_POINTS = 60000;
-    private final QuadTree data;
+    private QuadTree data;
     // Rajawali texture used to render the Tango color camera
     private ATexture mTangoCameraTexture;
     // Keeps track of whether the scene camera has been configured
@@ -62,6 +62,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private PointCloud mPointCloud;
     private Sphere TrackPoint;
     private Line3D line;
+    private boolean renderFloorPlan = false;
 
     public SceneRenderer(Context context) {
         super(context);
@@ -70,6 +71,10 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public SceneRenderer(Context context, QuadTree data){
         super(context);
+        this.data = data;
+    }
+
+    public void setQuadTree(QuadTree data){
         this.data = data;
     }
 
@@ -104,7 +109,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
         floorPlan = new FloorPlan(data);
         getCurrentScene().addChild(floorPlan);
-        floorPlan.setVisible(renderVirtualObjects);
+        floorPlan.setVisible(renderFloorPlan);
 
         mPointCloud = new PointCloud(MAX_NUMBER_OF_POINTS, 4);
         getCurrentScene().addChild(mPointCloud);
@@ -241,6 +246,13 @@ public class SceneRenderer extends RajawaliRenderer {
         return data;
     }
 
+    public void renderFloorPlan(boolean render){
+        renderFloorPlan = render;
+        if(floorPlan != null){
+            this.floorPlan.setVisible(renderFloorPlan);
+        }
+    }
+
     public void renderVirtualObjects(boolean renderObjects) {
         renderVirtualObjects = renderObjects;
         if (this.floorPlan != null)
@@ -258,7 +270,9 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void setFloorLevel(double level){
-        floorPlan.setFloorLevel(level);
+        if(floorPlan != null){
+            floorPlan.setFloorLevel(level);
+        }
     }
 
     public void updatePointCloud(TangoPointCloudData pointCloudData, float[] openGlTdepth) {
