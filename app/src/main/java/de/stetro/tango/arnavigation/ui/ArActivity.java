@@ -47,6 +47,12 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
@@ -59,7 +65,6 @@ import butterknife.ButterKnife;
 import de.stetro.tango.arnavigation.R;
 import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
-import de.stetro.tango.arnavigation.data.persistence.QuadTreeDAO;
 import de.stetro.tango.arnavigation.rendering.SceneRenderer;
 import de.stetro.tango.arnavigation.ui.util.ScenePreFrameCallbackAdapter;
 import de.stetro.tango.arnavigation.ui.views.MapView;
@@ -118,7 +123,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
     @Bind(R.id.fab_save)
     FloatingActionButton fabSave;
     @Bind(R.id.progressSpinner)
-    ProgressBar progressSpinner;
+    ProgressBar progressBar;
     private TangoSupport.IntersectionPointPlaneModelPair floorPlane = null;
     private int mDisplayRotation;
     private double mPointCloudPreviousTimeStamp;
@@ -157,6 +162,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        setContentView(R.layout.main_layout);
+        ButterKnife.bind(this);
+        setSupportActionBar(toolbar);
+
         Bundle extras = getIntent().getExtras();
         QuadTree tree = null;
         if(extras != null){
@@ -165,7 +174,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
                 EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
                 adfuuid = environment.getADFUUID();
                 floorLevel = environment.getFloorLevel();
-                tree = QuadTreeDAO.loadTreeFromRootNode(environment.getRootNodeId());
+//                tree = QuadTreeDAO.loadTreeFromRootNode(environment.getRootNodeId());
+                loadFromFile(environment.getADFUUID());
                 capturePointcloud = false;
                 fabPause.hide();
                 fabSave.hide();
@@ -181,10 +191,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
         } else {
             renderer = new SceneRenderer(this);
         }
-
-        setContentView(R.layout.main_layout);
-        ButterKnife.bind(this);
-        setSupportActionBar(toolbar);
 
         tangoUx.setLayout(uxLayout);
         renderer.renderVirtualObjects(true);
@@ -213,10 +219,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
             public void onClick(View v) {
                 capturePointcloud = false;
                 final double finalFloorLevel = floorLevel;
-                new AsyncTask<Object, Object, Long>(){
+                new AsyncTask<Object, Integer, Long>(){
                     @Override
                     protected void onPreExecute() {
-                        showLoadingSpinner();
+                        showProgressBar();
                         fabSave.hide();
                         fabPause.hide();
                         Log.d(TAG,"Saving environment");
@@ -224,19 +230,29 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
                     @Override
                     protected Long doInBackground(Object... params) {
-                        long treeId = QuadTreeDAO.persist(renderer.getFloorPlanData());
-
+//                        long treeId = QuadTreeDAO.persist(renderer.getFloorPlanData());
+                        long treeId = 0l;
                         String uuid = tango.saveAreaDescription();
+                        publishProgress(1);
+                        saveToFile(renderer.getFloorPlanData(),uuid);
+                        publishProgress(2);
                         Log.d(TAG,"Saved ADF");
                         EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid,treeId, finalFloorLevel);
                         environmentDAO.save();
+                        publishProgress(3);
                         Log.d(TAG,"Saved environment");
                         return environmentDAO.getId();
                     }
 
                     @Override
+                    protected void onProgressUpdate(Integer... values) {
+                        super.onProgressUpdate(values);
+                        progressBar.setProgress(values[0]);
+                    }
+
+                    @Override
                     protected void onPostExecute(Long id) {
-                        hideLoadingSpinner();
+                        hideProgressBar();
                         Log.d(TAG,"Saved environment with id :" + id);
                         Intent i = new Intent(ArActivity.this, ArActivity.class);
                         i.putExtra(KEY_ENVIRONMENT_ID,id);
@@ -270,13 +286,47 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
         calculationTimes.setWindowSize(100);
     }
 
-    private void hideLoadingSpinner() {
-        progressSpinner.setVisibility(View.INVISIBLE);
+    private void saveToFile(QuadTree floorPlanData, String name) {
+        FileOutputStream fout;
+        ObjectOutputStream oos;
+        try {
+            fout = new FileOutputStream(name + ".tree");
+            oos = new ObjectOutputStream(fout);
+            oos.writeObject(floorPlanData);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void showLoadingSpinner() {
-        progressSpinner.setVisibility(View.VISIBLE);
-        progressSpinner.setIndeterminate(true);
+    private QuadTree loadFromFile(String name){
+        FileInputStream is;
+        ObjectInputStream os;
+        QuadTree tree = null;
+        try {
+            is = new FileInputStream(name + ".tree");
+            os = new ObjectInputStream(is);
+            tree = (QuadTree) os.readObject();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return tree;
+    }
+
+    private void hideProgressBar() {
+        progressBar.setVisibility(View.INVISIBLE);
+    }
+
+    private void showProgressBar() {
+        progressBar.setVisibility(View.VISIBLE);
+        progressBar.setProgress(0);
+        progressBar.setMax(3);
+//        progressBar.setIndeterminate(true);
     }
 
     @Override
