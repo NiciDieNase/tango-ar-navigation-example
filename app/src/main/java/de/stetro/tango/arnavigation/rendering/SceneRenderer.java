@@ -246,13 +246,6 @@ public class SceneRenderer extends RajawaliRenderer {
         return data;
     }
 
-    public void renderFloorPlan(boolean render){
-        renderFloorPlan = render;
-        if(floorPlan != null){
-            this.floorPlan.setVisible(renderFloorPlan);
-        }
-    }
-
     public void renderVirtualObjects(boolean renderObjects) {
         renderVirtualObjects = renderObjects;
         if (this.floorPlan != null)
@@ -292,6 +285,14 @@ public class SceneRenderer extends RajawaliRenderer {
     public boolean getRenderPointCloud(){
         return renderPointCloud;
     }
+
+    public boolean renderFloorPlan(boolean show){
+        this.renderFloorPlan = show;
+        floorPlan.setVisible(renderFloorPlan);
+        return renderFloorPlan;
+    }
+
+    public boolean getRenderFloorPlan(){ return renderFloorPlan; };
 
     public void manuelUpdate(float[] point){
         floorPlan.forceAdd(new Vector3(point[0],point[1],point[2]));

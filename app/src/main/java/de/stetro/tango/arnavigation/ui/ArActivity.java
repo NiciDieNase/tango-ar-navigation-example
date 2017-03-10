@@ -189,6 +189,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				capturePointcloud = false;
 				fabPause.hide();
 				fabSave.hide();
+				showProgressBar();
 			}
 		}
 
@@ -223,51 +224,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE),
 				Tango.TANGO_INTENT_ACTIVITYCODE);
 
-		fabSave.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				capturePointcloud = false;
-				final double finalFloorLevel = floorLevel;
-				new AsyncTask<Object, Integer, Long>() {
-					@Override
-					protected void onPreExecute() {
-						showProgressBar();
-						fabSave.hide();
-						fabPause.hide();
-						Log.d(TAG, "Saving environment");
-					}
-
-					@Override
-					protected Long doInBackground(Object... params) {
-//                        long treeId = QuadTreeDAO.persist(renderer.getFloorPlanData());
-						long treeId = 0l;
-						String uuid = tango.saveAreaDescription();
-						publishProgress(1);
-						saveToFile(renderer.getFloorPlanData(), uuid);
-						publishProgress(2);
-						Log.d(TAG, "Saved ADF");
-						EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid, treeId, finalFloorLevel);
-						environmentDAO.save();
-						publishProgress(3);
-						Log.d(TAG, "Saved environment");
-						return environmentDAO.getId();
-					}
-
-					@Override
-					protected void onProgressUpdate(Integer... values) {
-						super.onProgressUpdate(values);
-						progressBar.setProgress(values[0]);
-					}
-
-					@Override
-					protected void onPostExecute(Long id) {
-						hideProgressBar();
-						Log.d(TAG, "Saved environment with id :" + id);
-						loadEnvironment(id);
-					}
-				}.execute();
-			}
-		});
+		fabSave.setOnClickListener(new OnSaveButtonClickListener());
 
 		DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
 		if (displayManager != null) {
@@ -395,6 +352,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			case R.id.toggle_point_cloud:
 				renderer.showPointCloud(!renderer.getRenderPointCloud());
 				break;
+			case R.id.toggle_floor_plan:
+				renderer.renderFloorPlan(!renderer.getRenderFloorPlan());
+				break;
 			case R.id.load_environment:
 				new SelectEnvironmentFragment().setEnvironmentSelectionListener(this).show(getFragmentManager(),"loadEnvDialog");
 				break;
@@ -520,7 +480,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 							// OpenGL engine.
 							TangoSupport.TangoMatrixTransformData transform =
 									TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
-											TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
+											TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
 											TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
 											TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
 											TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
@@ -712,8 +672,19 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			if (tangoUx != null) {
 				tangoUx.updatePoseStatus(pose.statusCode);
 			}
-			if(pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION){
+			if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
+					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE) {
 				localized = true;
+				hideProgressBar();
+				Log.d(TAG, "New ADF to Device Pose");
+				// Process new ADF to device pose data.
+			}
+			else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
+					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE) {
+				localized = true;
+				hideProgressBar();
+				Log.d(TAG, "new localization");
+				// Process new localization.
 			}
 		}
 
@@ -877,5 +848,51 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				})
 				.create();
 		dialog.show();
+	}
+
+	private class OnSaveButtonClickListener implements View.OnClickListener {
+		@Override
+		public void onClick(View v) {
+			capturePointcloud = false;
+			final double finalFloorLevel = floorLevel;
+			new AsyncTask<Object, Integer, Long>() {
+				@Override
+				protected void onPreExecute() {
+					showProgressBar();
+					fabSave.hide();
+					fabPause.hide();
+					Log.d(TAG, "Saving environment");
+				}
+
+				@Override
+				protected Long doInBackground(Object... params) {
+//                        long treeId = QuadTreeDAO.persist(renderer.getFloorPlanData());
+					long treeId = 0l;
+					String uuid = tango.saveAreaDescription();
+					publishProgress(1);
+					saveToFile(renderer.getFloorPlanData(), uuid);
+					publishProgress(2);
+					Log.d(TAG, "Saved ADF");
+					EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid, treeId, finalFloorLevel);
+					environmentDAO.save();
+					publishProgress(3);
+					Log.d(TAG, "Saved environment");
+					return environmentDAO.getId();
+				}
+
+				@Override
+				protected void onProgressUpdate(Integer... values) {
+					super.onProgressUpdate(values);
+					progressBar.setProgress(values[0]);
+				}
+
+				@Override
+				protected void onPostExecute(Long id) {
+					hideProgressBar();
+					Log.d(TAG, "Saved environment with id :" + id);
+					loadEnvironment(id);
+				}
+			}.execute();
+		}
 	}
 }

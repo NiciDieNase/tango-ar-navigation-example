@@ -20,6 +20,10 @@
         android:title="@string/toggle_pointcloud"/>
 
     <item
+        android:id="@+id/toggle_floor_plan"
+        android:title="@string/toogle_floor_plan"/>
+
+    <item
         android:id="@+id/load_environment"
         android:title="@string/load_environment"/>
 

@@ -12,4 +12,5 @@
     <string name="exception_tango_invalid">"Tango invalid exception! Try again!"</string>
     <string name="toggle_pointcloud">Toggle Pointcloud</string>
     <string name="load_environment">Load Environment</string>
+    <string name="toogle_floor_plan">Toogle Floor Plan</string>
 </resources>
