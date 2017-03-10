@@ -1,6 +1,7 @@
 package de.stetro.tango.arnavigation.ui;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -66,481 +67,493 @@ import de.stetro.tango.arnavigation.R;
 import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
 import de.stetro.tango.arnavigation.rendering.SceneRenderer;
+import de.stetro.tango.arnavigation.ui.SelectEnvironmentFragment.EnvironmentSelectionListener;
 import de.stetro.tango.arnavigation.ui.util.ScenePreFrameCallbackAdapter;
 import de.stetro.tango.arnavigation.ui.views.MapView;
 
 
-public class ArActivity extends AppCompatActivity implements View.OnTouchListener {
+public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener {
 
-    // frame pairs for adf based ar pose tracking
-    public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
-            new TangoCoordinateFramePair(
-                    TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
-                    TangoPoseData.COORDINATE_FRAME_DEVICE);
-    public static final TangoCoordinateFramePair DEVICE_T_PREVIOUS_FRAME_PAIR =
-            new TangoCoordinateFramePair(
-                    TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
-                    TangoPoseData.COORDINATE_FRAME_DEVICE);
+	// frame pairs for adf based ar pose tracking
+	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
+			new TangoCoordinateFramePair(
+					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
+					TangoPoseData.COORDINATE_FRAME_DEVICE);
+	public static final TangoCoordinateFramePair DEVICE_T_PREVIOUS_FRAME_PAIR =
+			new TangoCoordinateFramePair(
+					TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
+					TangoPoseData.COORDINATE_FRAME_DEVICE);
 
-    public static final double UPDATE_INTERVAL_MS = 500.0;
-    public static final int POINTCLOUD_SAMPLE_RATE = 5;
-    public static final boolean MAP_CENTER = false;
-    private static final double ACCURACY = 0.15;
-    private static final double OBSTACLE_HEIGHT = 0.4;
+	public static final double UPDATE_INTERVAL_MS = 500.0;
+	public static final int POINTCLOUD_SAMPLE_RATE = 5;
+	public static final boolean MAP_CENTER = false;
+	private static final double ACCURACY = 0.15;
+	private static final double OBSTACLE_HEIGHT = 0.4;
 
-    // This changes the Camera Texture and Intrinsics
-    protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
-    protected static final int INVALID_TEXTURE_ID = -1;
-    private static final String TAG = ArActivity.class.getSimpleName();
-    public static final boolean LEARNINGMODE_ENABLED = true;
-    public static final String KEY_ENVIRONMENT_ID = "environment_id";
-    protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
+	// This changes the Camera Texture and Intrinsics
+	protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
+	protected static final int INVALID_TEXTURE_ID = -1;
+	private static final String TAG = ArActivity.class.getSimpleName();
+	public static final boolean LEARNINGMODE_ENABLED = true;
+	public static final String KEY_ENVIRONMENT_ID = "environment_id";
+	protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 
-    private double floorLevel = -1000.0f;
-    protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
-    protected Tango tango;
-    protected TangoUx tangoUx;
-    protected TangoCameraIntrinsics intrinsics;
+	private double floorLevel = -1000.0f;
+	protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
+	protected Tango tango;
+	protected TangoUx tangoUx;
+	protected TangoCameraIntrinsics intrinsics;
 
-    protected DeviceExtrinsics extrinsics;
-    private TangoPointCloudManager mPointCloudManager;
-    protected int connectedTextureId;
+	protected DeviceExtrinsics extrinsics;
+	private TangoPointCloudManager mPointCloudManager;
+	protected int connectedTextureId;
 
-    protected double rgbFrameTimestamp;
+	protected double rgbFrameTimestamp;
 
-    protected double cameraPoseTimestamp;
-    protected SceneRenderer renderer;
-    @Bind(R.id.gl_main_surface_view)
-    RajawaliSurfaceView mainSurfaceView;
-    @Bind(R.id.toolbar)
-    Toolbar toolbar;
-    @Bind(R.id.tango_ux_layout)
-    TangoUxLayout uxLayout;
-    @Bind(R.id.map_view)
-    MapView mapView;
-    @Bind(R.id.fab_pause)
-    FloatingActionButton fabPause;
-    @Bind(R.id.fab_save)
-    FloatingActionButton fabSave;
-    @Bind(R.id.progressSpinner)
-    ProgressBar progressBar;
-    private TangoSupport.IntersectionPointPlaneModelPair floorPlane = null;
-    private int mDisplayRotation;
-    private double mPointCloudPreviousTimeStamp;
-    private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
-    private boolean newPoints = false;
-    private List<Vector3> floorPoints = new LinkedList<>();
-    private List<Vector3> obstaclePoints = new LinkedList<>();
-    private TangoImageBuffer mCurrentImageBuffer;
-    private boolean capturePointcloud = true;
-    private boolean newPointcloud = false;
-    private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
-    private boolean manualAdd = false;
-    private float[] manualPoint;
-    private String adfuuid = "";
+	protected double cameraPoseTimestamp;
+	protected SceneRenderer renderer;
+	@Bind(R.id.gl_main_surface_view)
+	RajawaliSurfaceView mainSurfaceView;
+	@Bind(R.id.toolbar)
+	Toolbar toolbar;
+	@Bind(R.id.tango_ux_layout)
+	TangoUxLayout uxLayout;
+	@Bind(R.id.map_view)
+	MapView mapView;
+	@Bind(R.id.fab_pause)
+	FloatingActionButton fabPause;
+	@Bind(R.id.fab_save)
+	FloatingActionButton fabSave;
+	@Bind(R.id.progressSpinner)
+	ProgressBar progressBar;
+	private TangoSupport.IntersectionPointPlaneModelPair floorPlane = null;
+	private int mDisplayRotation;
+	private double mPointCloudPreviousTimeStamp;
+	private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
+	private boolean newPoints = false;
+	private List<Vector3> floorPoints = new LinkedList<>();
+	private List<Vector3> obstaclePoints = new LinkedList<>();
+	private TangoImageBuffer mCurrentImageBuffer;
+	private boolean capturePointcloud = true;
+	private boolean newPointcloud = false;
+	private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
+	private boolean manualAdd = false;
+	private float[] manualPoint;
+	private String adfuuid = "";
 
 
-    private static DeviceExtrinsics setupExtrinsics(Tango tango) {
-        // Create camera to IMU transform.
-        TangoCoordinateFramePair framePair = new TangoCoordinateFramePair();
-        framePair.baseFrame = TangoPoseData.COORDINATE_FRAME_IMU;
-        framePair.targetFrame = TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR;
-        TangoPoseData imuToRgbPose = tango.getPoseAtTime(0.0, framePair);
+	private static DeviceExtrinsics setupExtrinsics(Tango tango) {
+		// Create camera to IMU transform.
+		TangoCoordinateFramePair framePair = new TangoCoordinateFramePair();
+		framePair.baseFrame = TangoPoseData.COORDINATE_FRAME_IMU;
+		framePair.targetFrame = TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR;
+		TangoPoseData imuToRgbPose = tango.getPoseAtTime(0.0, framePair);
 
-        // Create device to IMU transform.
-        framePair.targetFrame = TangoPoseData.COORDINATE_FRAME_DEVICE;
-        TangoPoseData imuToDevicePose = tango.getPoseAtTime(0.0, framePair);
+		// Create device to IMU transform.
+		framePair.targetFrame = TangoPoseData.COORDINATE_FRAME_DEVICE;
+		TangoPoseData imuToDevicePose = tango.getPoseAtTime(0.0, framePair);
 
-        // Create depth camera to IMU transform.
-        framePair.targetFrame = TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH;
-        TangoPoseData imuToDepthPose = tango.getPoseAtTime(0.0, framePair);
+		// Create depth camera to IMU transform.
+		framePair.targetFrame = TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH;
+		TangoPoseData imuToDepthPose = tango.getPoseAtTime(0.0, framePair);
 
-        return new DeviceExtrinsics(imuToDevicePose, imuToRgbPose, imuToDepthPose);
-    }
+		return new DeviceExtrinsics(imuToDevicePose, imuToRgbPose, imuToDepthPose);
+	}
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.main_layout);
-        ButterKnife.bind(this);
-        setSupportActionBar(toolbar);
+		setContentView(R.layout.main_layout);
+		ButterKnife.bind(this);
+		setSupportActionBar(toolbar);
 
-        Bundle extras = getIntent().getExtras();
-        QuadTree tree = null;
-        if(extras != null){
-            long environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
-            if(environment_id != 0){
-                EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
-                adfuuid = environment.getADFUUID();
-                floorLevel = environment.getFloorLevel();
+		Bundle extras = getIntent().getExtras();
+		QuadTree tree = null;
+		if (extras != null) {
+			long environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
+			if (environment_id != 0) {
+				EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
+				loadEnvironment(environment.getId());
+				adfuuid = environment.getADFUUID();
+				floorLevel = environment.getFloorLevel();
 //                tree = QuadTreeDAO.loadTreeFromRootNode(environment.getRootNodeId());
-                loadFromFile(environment.getADFUUID());
-                capturePointcloud = false;
-                fabPause.hide();
-                fabSave.hide();
-            }
-        }
+				loadFromFile(environment.getADFUUID());
+				capturePointcloud = false;
+				fabPause.hide();
+				fabSave.hide();
+			}
+		}
 
 //        tango = new Tango(this,null);
-        tangoUx = new TangoUx(this);
+		tangoUx = new TangoUx(this);
 
-        if(tree != null){
-            renderer = new SceneRenderer(this,tree);
-            renderer.setFloorLevel(floorLevel);
-        } else {
-            renderer = new SceneRenderer(this);
-        }
+		if (tree != null) {
+			renderer = new SceneRenderer(this, tree);
+			renderer.setFloorLevel(floorLevel);
+		} else {
+			renderer = new SceneRenderer(this);
+		}
 
-        tangoUx.setLayout(uxLayout);
-        renderer.renderVirtualObjects(true);
-        mainSurfaceView.setSurfaceRenderer(renderer);
-        mainSurfaceView.setZOrderOnTop(false);
-        mapView.setFloorPlanData(renderer.getFloorPlanData());
-        mainSurfaceView.setOnTouchListener(this);
-        mPointCloudManager = new TangoPointCloudManager();
-        fabPause.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                capturePointcloud = !capturePointcloud;
-                if(capturePointcloud){
-                    fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_pause));
-                } else {
-                    fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
-                }
-            }
-        });
+		tangoUx.setLayout(uxLayout);
+		renderer.renderVirtualObjects(true);
+		mainSurfaceView.setSurfaceRenderer(renderer);
+		mainSurfaceView.setZOrderOnTop(false);
+		mapView.setFloorPlanData(renderer.getFloorPlanData());
+		mainSurfaceView.setOnTouchListener(this);
+		mPointCloudManager = new TangoPointCloudManager();
+		fabPause.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				capturePointcloud = !capturePointcloud;
+				if (capturePointcloud) {
+					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_pause));
+				} else {
+					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
+				}
+			}
+		});
 
-        startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE),
-                Tango.TANGO_INTENT_ACTIVITYCODE);
+		startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE),
+				Tango.TANGO_INTENT_ACTIVITYCODE);
 
-        fabSave.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                capturePointcloud = false;
-                final double finalFloorLevel = floorLevel;
-                new AsyncTask<Object, Integer, Long>(){
-                    @Override
-                    protected void onPreExecute() {
-                        showProgressBar();
-                        fabSave.hide();
-                        fabPause.hide();
-                        Log.d(TAG,"Saving environment");
-                    }
+		fabSave.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				capturePointcloud = false;
+				final double finalFloorLevel = floorLevel;
+				new AsyncTask<Object, Integer, Long>() {
+					@Override
+					protected void onPreExecute() {
+						showProgressBar();
+						fabSave.hide();
+						fabPause.hide();
+						Log.d(TAG, "Saving environment");
+					}
 
-                    @Override
-                    protected Long doInBackground(Object... params) {
+					@Override
+					protected Long doInBackground(Object... params) {
 //                        long treeId = QuadTreeDAO.persist(renderer.getFloorPlanData());
-                        long treeId = 0l;
-                        String uuid = tango.saveAreaDescription();
-                        publishProgress(1);
-                        saveToFile(renderer.getFloorPlanData(),uuid);
-                        publishProgress(2);
-                        Log.d(TAG,"Saved ADF");
-                        EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid,treeId, finalFloorLevel);
-                        environmentDAO.save();
-                        publishProgress(3);
-                        Log.d(TAG,"Saved environment");
-                        return environmentDAO.getId();
-                    }
+						long treeId = 0l;
+						String uuid = tango.saveAreaDescription();
+						publishProgress(1);
+						saveToFile(renderer.getFloorPlanData(), uuid);
+						publishProgress(2);
+						Log.d(TAG, "Saved ADF");
+						EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid, treeId, finalFloorLevel);
+						environmentDAO.save();
+						publishProgress(3);
+						Log.d(TAG, "Saved environment");
+						return environmentDAO.getId();
+					}
 
-                    @Override
-                    protected void onProgressUpdate(Integer... values) {
-                        super.onProgressUpdate(values);
-                        progressBar.setProgress(values[0]);
-                    }
+					@Override
+					protected void onProgressUpdate(Integer... values) {
+						super.onProgressUpdate(values);
+						progressBar.setProgress(values[0]);
+					}
 
-                    @Override
-                    protected void onPostExecute(Long id) {
-                        hideProgressBar();
-                        Log.d(TAG,"Saved environment with id :" + id);
-                        Intent i = new Intent(ArActivity.this, ArActivity.class);
-                        i.putExtra(KEY_ENVIRONMENT_ID,id);
-                        startActivity(i);
-                        ArActivity.this.finish();
-                    }
-                }.execute();
-            }
-        });
+					@Override
+					protected void onPostExecute(Long id) {
+						hideProgressBar();
+						Log.d(TAG, "Saved environment with id :" + id);
+						loadEnvironment(id);
+					}
+				}.execute();
+			}
+		});
 
-        DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
-        if (displayManager != null) {
-            displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
-                @Override
-                public void onDisplayAdded(int displayId) {
-                }
+		DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
+		if (displayManager != null) {
+			displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
+				@Override
+				public void onDisplayAdded(int displayId) {
+				}
 
-                @Override
-                public void onDisplayChanged(int displayId) {
-                    synchronized (this) {
-                        setDisplayRotation();
-                    }
-                }
+				@Override
+				public void onDisplayChanged(int displayId) {
+					synchronized (this) {
+						setDisplayRotation();
+					}
+				}
 
-                @Override
-                public void onDisplayRemoved(int displayId) {
-                }
-            }, null);
-        }
+				@Override
+				public void onDisplayRemoved(int displayId) {
+				}
+			}, null);
+		}
 
-        calculationTimes.setWindowSize(100);
-    }
+		calculationTimes.setWindowSize(100);
+	}
 
-    private void saveToFile(QuadTree floorPlanData, String name) {
-        FileOutputStream fout;
-        ObjectOutputStream oos;
-        try {
-            fout = new FileOutputStream(name + ".tree");
-            oos = new ObjectOutputStream(fout);
-            oos.writeObject(floorPlanData);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+	private void loadEnvironment(Long id) {
+		Intent i = new Intent(this, ArActivity.class);
+		i.putExtra(KEY_ENVIRONMENT_ID, id);
+		startActivity(i);
+		ArActivity.this.finish();
+	}
 
-    private QuadTree loadFromFile(String name){
-        FileInputStream is;
-        ObjectInputStream os;
-        QuadTree tree = null;
-        try {
-            is = new FileInputStream(name + ".tree");
-            os = new ObjectInputStream(is);
-            tree = (QuadTree) os.readObject();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return tree;
-    }
+	private void saveToFile(QuadTree floorPlanData, String name) {
+		FileOutputStream fout;
+		ObjectOutputStream oos;
+		try {
+//			fout = new FileOutputStream(name + ".tree");
+			fout = openFileOutput(name + ".tree", Context.MODE_PRIVATE);
+			oos = new ObjectOutputStream(fout);
+			oos.writeObject(floorPlanData);
+			Log.d(TAG, fout.getFD().toString());
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
-    private void hideProgressBar() {
-        progressBar.setVisibility(View.INVISIBLE);
-    }
+	private QuadTree loadFromFile(String name) {
+		FileInputStream is;
+		ObjectInputStream os;
+		QuadTree tree = null;
+		try {
+//			is = new FileInputStream(name + ".tree");
+			is = openFileInput(name + ".tree");
+			os = new ObjectInputStream(is);
+			tree = (QuadTree) os.readObject();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		return tree;
+	}
 
-    private void showProgressBar() {
-        progressBar.setVisibility(View.VISIBLE);
-        progressBar.setProgress(0);
-        progressBar.setMax(3);
+	private void hideProgressBar() {
+		progressBar.setVisibility(View.INVISIBLE);
+	}
+
+	private void showProgressBar() {
+		progressBar.setVisibility(View.VISIBLE);
+		progressBar.setProgress(0);
+		progressBar.setMax(3);
 //        progressBar.setIndeterminate(true);
-    }
+	}
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        synchronized (this) {
-            if (tangoIsConnected.compareAndSet(false, true)) {
-                try {
-                    if(checkAndRequestPermissions()){
-                        connectTango();
-                        connectRenderer();
-                    }
-                } catch (TangoOutOfDateException e) {
-                    message(R.string.exception_out_of_date);
-                }
-            }
-        }
-    }
+	@Override
+	protected void onResume() {
+		super.onResume();
+		synchronized (this) {
+			if (tangoIsConnected.compareAndSet(false, true)) {
+				try {
+					if (checkAndRequestPermissions()) {
+						connectTango();
+						connectRenderer();
+					}
+				} catch (TangoOutOfDateException e) {
+					message(R.string.exception_out_of_date);
+				}
+			}
+		}
+	}
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        synchronized (this) {
-            if (tangoIsConnected.compareAndSet(true, false) && tango != null) {
-                renderer.getCurrentScene().clearFrameCallbacks();
-                tango.disconnectCamera(ACTIVE_CAMERA_INTRINSICS);
-                connectedTextureId = INVALID_TEXTURE_ID;
-                tango.disconnect();
-                tangoUx.stop();
-            }
-        }
-    }
+	@Override
+	protected void onPause() {
+		super.onPause();
+		synchronized (this) {
+			if (tangoIsConnected.compareAndSet(true, false) && tango != null) {
+				renderer.getCurrentScene().clearFrameCallbacks();
+				tango.disconnectCamera(ACTIVE_CAMERA_INTRINSICS);
+				connectedTextureId = INVALID_TEXTURE_ID;
+				tango.disconnect();
+				tangoUx.stop();
+			}
+		}
+	}
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return super.onCreateOptionsMenu(menu);
-    }
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.main_menu, menu);
+		return super.onCreateOptionsMenu(menu);
+	}
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.set_start_point:
-                renderer.setStartPoint(getCurrentPose(), extrinsics);
-                break;
-            case R.id.set_end_point:
-                renderer.setEndPoint(getCurrentPose(), extrinsics
-                );
-                break;
-            case R.id.toggle_point_cloud:
-                renderer.showPointCloud(!renderer.getRenderPointCloud());
-                break;
-        }
-        return super.onOptionsItemSelected(item);
-    }
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+			case R.id.set_start_point:
+				renderer.setStartPoint(getCurrentPose(), extrinsics);
+				break;
+			case R.id.set_end_point:
+				renderer.setEndPoint(getCurrentPose(), extrinsics
+				);
+				break;
+			case R.id.toggle_point_cloud:
+				renderer.showPointCloud(!renderer.getRenderPointCloud());
+				break;
+			case R.id.load_environment:
+				new SelectEnvironmentFragment().setEnvironmentSelectionListener(this).show(getFragmentManager(),"loadEnvDialog");
+				break;
+		}
+		return super.onOptionsItemSelected(item);
+	}
 
-    private void message(final int message_resource) {
-        Toast.makeText(this, message_resource, Toast.LENGTH_SHORT).show();
-    }
+	private void message(final int message_resource) {
+		Toast.makeText(this, message_resource, Toast.LENGTH_SHORT).show();
+	}
 
-    protected void setupCameraProperties(Tango tango) {
-        extrinsics = setupExtrinsics(tango);
-        intrinsics = tango.getCameraIntrinsics(ACTIVE_CAMERA_INTRINSICS);
-    }
+	protected void setupCameraProperties(Tango tango) {
+		extrinsics = setupExtrinsics(tango);
+		intrinsics = tango.getCameraIntrinsics(ACTIVE_CAMERA_INTRINSICS);
+	}
 
 
-    protected void connectTango() {
-        tango = new Tango(this, new Runnable() {
-            @Override
-            public void run() {
-                synchronized (this){
-                    try {
-                        TangoSupport.initialize();
-                        TangoConfig config = getTangoConfig();
-                        tango.connect(config);
-                        TangoUx.StartParams params = new TangoUx.StartParams();
-                        tangoUx.start(params);
-                        ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<>();
-                        framePairs.add(SOS_T_DEVICE_FRAME_PAIR);
-                        framePairs.add(DEVICE_T_PREVIOUS_FRAME_PAIR);
-                        tango.connectListener(framePairs, new mTangoUpdateListener());
+	protected void connectTango() {
+		tango = new Tango(this, new Runnable() {
+			@Override
+			public void run() {
+				synchronized (this) {
+					try {
+						TangoSupport.initialize();
+						TangoConfig config = getTangoConfig();
+						tango.connect(config);
+						TangoUx.StartParams params = new TangoUx.StartParams();
+						tangoUx.start(params);
+						ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<>();
+						framePairs.add(SOS_T_DEVICE_FRAME_PAIR);
+						framePairs.add(DEVICE_T_PREVIOUS_FRAME_PAIR);
+						tango.connectListener(framePairs, new mTangoUpdateListener());
 
-                        tango.experimentalConnectOnFrameListener(TangoCameraIntrinsics.TANGO_CAMERA_COLOR,
-                                new Tango.OnFrameAvailableListener() {
-                                    @Override
-                                    public void onFrameAvailable(TangoImageBuffer tangoImageBuffer, int i) {
-                                        mCurrentImageBuffer = copyImageBuffer(tangoImageBuffer);
-                                    }
+						tango.experimentalConnectOnFrameListener(TangoCameraIntrinsics.TANGO_CAMERA_COLOR,
+								new Tango.OnFrameAvailableListener() {
+									@Override
+									public void onFrameAvailable(TangoImageBuffer tangoImageBuffer, int i) {
+										mCurrentImageBuffer = copyImageBuffer(tangoImageBuffer);
+									}
 
-                                    TangoImageBuffer copyImageBuffer(TangoImageBuffer imageBuffer) {
-                                        ByteBuffer clone = ByteBuffer.allocateDirect(imageBuffer.data.capacity());
-                                        imageBuffer.data.rewind();
-                                        clone.put(imageBuffer.data);
-                                        imageBuffer.data.rewind();
-                                        clone.flip();
-                                        return new TangoImageBuffer(imageBuffer.width, imageBuffer.height,
-                                                imageBuffer.stride, imageBuffer.frameNumber,
-                                                imageBuffer.timestamp, imageBuffer.format, clone);
-                                    }
-                                });
+									TangoImageBuffer copyImageBuffer(TangoImageBuffer imageBuffer) {
+										ByteBuffer clone = ByteBuffer.allocateDirect(imageBuffer.data.capacity());
+										imageBuffer.data.rewind();
+										clone.put(imageBuffer.data);
+										imageBuffer.data.rewind();
+										clone.flip();
+										return new TangoImageBuffer(imageBuffer.width, imageBuffer.height,
+												imageBuffer.stride, imageBuffer.frameNumber,
+												imageBuffer.timestamp, imageBuffer.format, clone);
+									}
+								});
 
-                        setupCameraProperties(tango);
-                    } catch (TangoOutOfDateException e) {
-                        Log.e(TAG, getString(R.string.exception_out_of_date), e);
+						setupCameraProperties(tango);
+					} catch (TangoOutOfDateException e) {
+						Log.e(TAG, getString(R.string.exception_out_of_date), e);
 //                        Toast.makeText(ArActivity.this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
-                    } catch (TangoErrorException e) {
-                        Log.e(TAG, getString(R.string.exception_tango_error), e);
+					} catch (TangoErrorException e) {
+						Log.e(TAG, getString(R.string.exception_tango_error), e);
 //                        Toast.makeText(ArActivity.this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
-                    } catch (TangoInvalidException e) {
-                        Log.e(TAG, getString(R.string.exception_tango_invalid), e);
+					} catch (TangoInvalidException e) {
+						Log.e(TAG, getString(R.string.exception_tango_invalid), e);
 //                        Toast.makeText(ArActivity.this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-        });
+					}
+				}
+			}
+		});
 
-    }
+	}
 
-    @NonNull
-    private TangoConfig getTangoConfig() {
-        TangoConfig config = tango.getConfig(TangoConfig.CONFIG_TYPE_DEFAULT);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_LOWLATENCYIMUINTEGRATION, true);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING,true);
-        config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
-        if(adfuuid.equals("")){
-            config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
-        } else {
-            config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION, adfuuid);
-        }
-        return config;
-    }
+	@NonNull
+	private TangoConfig getTangoConfig() {
+		TangoConfig config = tango.getConfig(TangoConfig.CONFIG_TYPE_DEFAULT);
+		config.putBoolean(TangoConfig.KEY_BOOLEAN_LOWLATENCYIMUINTEGRATION, true);
+		config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
+		config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
+		config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
+		config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
+		if (adfuuid.equals("")) {
+			config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
+		} else {
+			config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION, adfuuid);
+		}
+		return config;
+	}
 
 
-    public TangoPoseData getCurrentPose() {
-        return tango.getPoseAtTime(rgbFrameTimestamp, SOS_T_DEVICE_FRAME_PAIR);
-    }
+	public TangoPoseData getCurrentPose() {
+		return tango.getPoseAtTime(rgbFrameTimestamp, SOS_T_DEVICE_FRAME_PAIR);
+	}
 
-    protected void connectRenderer() {
-        renderer.getCurrentScene().registerFrameCallback(new ScenePreFrameCallbackAdapter() {
-            @Override
-            public void onPreFrame(long sceneTime, double deltaTime) {
-                synchronized (ArActivity.this) {
-                    if (!tangoIsConnected.get()) {
-                        return;
-                    }
-                    if (!renderer.isSceneCameraConfigured()) {
-                        renderer.setProjectionMatrix(intrinsics);
-                    }
-                    if (connectedTextureId != renderer.getTextureId()) {
-                        tango.connectTextureId(ACTIVE_CAMERA_INTRINSICS, renderer.getTextureId());
-                        connectedTextureId = renderer.getTextureId();
-                    }
-                    if (tangoFrameIsAvailable.compareAndSet(true, false)) {
-                        rgbFrameTimestamp = tango.updateTexture(ACTIVE_CAMERA_INTRINSICS);
-                    }
-                    if (rgbFrameTimestamp > cameraPoseTimestamp) {
-                        TangoPoseData currentPose = getCurrentPose();
-                        if (currentPose != null && currentPose.statusCode == TangoPoseData.POSE_VALID) {
-                            renderer.updateRenderCameraPose(currentPose, extrinsics);
-                            cameraPoseTimestamp = currentPose.timestamp;
-                        }
-                    }
-                    if(newPointcloud){
-                        // Update point cloud data.
-                        TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
-                        if (pointCloud != null) {
-                            // Calculate the camera color pose at the camera frame update time in
-                            // OpenGL engine.
-                            TangoSupport.TangoMatrixTransformData transform =
-                                    TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
-                                            TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
-                                            TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-                                            TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-                                            TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-                                            TangoSupport.ROTATION_IGNORED);
-                            if (transform.statusCode == TangoPoseData.POSE_VALID) {
-                                renderer.updatePointCloud(pointCloud, transform.matrix);
-                            }
-                        }
-                        newPointcloud = false;
-                    }
-                }
-                if (newPoints) {
-                    synchronized (floorPoints) {
-                        List<List<Vector3>> points = new ArrayList<List<Vector3>>();
-                        points.add(floorPoints);
-                        points.add(obstaclePoints);
-                        renderer.addToFloorPlan(points);
-                        if(MAP_CENTER){
-                            renderer.setTrackPosition(floorPoints.get(0));
-                        }
-                        floorPoints.clear();
-                        newPoints = false;
-                    }
-                }
-                if (manualAdd){
-                    renderer.manuelUpdate(manualPoint);
-                    manualAdd = false;
-                }
-            }
-        });
-    }
+	protected void connectRenderer() {
+		renderer.getCurrentScene().registerFrameCallback(new ScenePreFrameCallbackAdapter() {
+			@Override
+			public void onPreFrame(long sceneTime, double deltaTime) {
+				synchronized (ArActivity.this) {
+					if (!tangoIsConnected.get()) {
+						return;
+					}
+					if (!renderer.isSceneCameraConfigured()) {
+						renderer.setProjectionMatrix(intrinsics);
+					}
+					if (connectedTextureId != renderer.getTextureId()) {
+						tango.connectTextureId(ACTIVE_CAMERA_INTRINSICS, renderer.getTextureId());
+						connectedTextureId = renderer.getTextureId();
+					}
+					if (tangoFrameIsAvailable.compareAndSet(true, false)) {
+						rgbFrameTimestamp = tango.updateTexture(ACTIVE_CAMERA_INTRINSICS);
+					}
+					if (rgbFrameTimestamp > cameraPoseTimestamp) {
+						TangoPoseData currentPose = getCurrentPose();
+						if (currentPose != null && currentPose.statusCode == TangoPoseData.POSE_VALID) {
+							renderer.updateRenderCameraPose(currentPose, extrinsics);
+							cameraPoseTimestamp = currentPose.timestamp;
+						}
+					}
+					if (newPointcloud) {
+						// Update point cloud data.
+						TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
+						if (pointCloud != null) {
+							// Calculate the camera color pose at the camera frame update time in
+							// OpenGL engine.
+							TangoSupport.TangoMatrixTransformData transform =
+									TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
+											TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
+											TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
+											TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+											TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+											TangoSupport.ROTATION_IGNORED);
+							if (transform.statusCode == TangoPoseData.POSE_VALID) {
+								renderer.updatePointCloud(pointCloud, transform.matrix);
+							}
+						}
+						newPointcloud = false;
+					}
+				}
+				if (newPoints) {
+					synchronized (floorPoints) {
+						List<List<Vector3>> points = new ArrayList<List<Vector3>>();
+						points.add(floorPoints);
+						points.add(obstaclePoints);
+						renderer.addToFloorPlan(points);
+						if (MAP_CENTER) {
+							renderer.setTrackPosition(floorPoints.get(0));
+						}
+						floorPoints.clear();
+						newPoints = false;
+					}
+				}
+				if (manualAdd) {
+					renderer.manuelUpdate(manualPoint);
+					manualAdd = false;
+				}
+			}
+		});
+	}
 
-    @Override
-    public boolean onTouch(View view, MotionEvent motionEvent) {
-        if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-            // Calculate click location in u,v (0;1) coordinates.
-            float u = motionEvent.getX() / view.getWidth();
-            float v = motionEvent.getY() / view.getHeight();
+	@Override
+	public boolean onTouch(View view, MotionEvent motionEvent) {
+		if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+			// Calculate click location in u,v (0;1) coordinates.
+			float u = motionEvent.getX() / view.getWidth();
+			float v = motionEvent.getY() / view.getHeight();
 
-            try {
-                // Fit a plane on the clicked point using the latest poiont cloud data
+			try {
+				// Fit a plane on the clicked point using the latest poiont cloud data
 //                TangoSupport.IntersectionPointPlaneModelPair planeModel = doFitPlane(u, v, rgbFrameTimestamp);
 //                if (planeModel != null) {
 //                    floorPlane = planeModel;
@@ -549,294 +562,299 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 //                    Snackbar.make(view,R.string.no_depth_data, Snackbar.LENGTH_SHORT).show();
 //                }
 //                float[] planeFitTransform;
-                synchronized (this) {
-                    float[] touchPosition = getDepthAtTouchPosition(u, v, mPointCloudManager.getLatestPointCloud());
-                    if(touchPosition != null){
-                        floorLevel = touchPosition[1];
-                        Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
-                        Log.d(TAG, "Floor level: " + floorLevel);
-                        renderer.setFloorLevel(floorLevel);
-                        renderer.renderVirtualObjects(true);
+				synchronized (this) {
+					float[] touchPosition = getDepthAtTouchPosition(u, v, mPointCloudManager.getLatestPointCloud());
+					if (touchPosition != null) {
+						floorLevel = touchPosition[1];
+						Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
+						Log.d(TAG, "Floor level: " + floorLevel);
+						renderer.setFloorLevel(floorLevel);
+						renderer.renderVirtualObjects(true);
 
-                        manualPoint = touchPosition;
-                        manualAdd = true;
-                    }
-                }
+						manualPoint = touchPosition;
+						manualAdd = true;
+					}
+				}
 
-            } catch (TangoException t) {
-                Toast.makeText(getApplicationContext(),
-                        R.string.failed_measurement,
-                        Toast.LENGTH_SHORT).show();
-                Log.e(TAG, getString(R.string.failed_measurement), t);
-            } catch (SecurityException t) {
-                Toast.makeText(getApplicationContext(),
-                        R.string.failed_permissions,
-                        Toast.LENGTH_SHORT).show();
-                Log.e(TAG, getString(R.string.failed_permissions), t);
-            }
-        }
-        return true;
-    }
+			} catch (TangoException t) {
+				Toast.makeText(getApplicationContext(),
+						R.string.failed_measurement,
+						Toast.LENGTH_SHORT).show();
+				Log.e(TAG, getString(R.string.failed_measurement), t);
+			} catch (SecurityException t) {
+				Toast.makeText(getApplicationContext(),
+						R.string.failed_permissions,
+						Toast.LENGTH_SHORT).show();
+				Log.e(TAG, getString(R.string.failed_permissions), t);
+			}
+		}
+		return true;
+	}
 
-    /**
-     * Use the TangoSupport library with point cloud data to calculate the depth
-     * of the point closest to where the user touches the screen. It returns a
-     * Vector3 in openGL world space.
-     */
-    private float[] getDepthAtTouchPosition(float u, float v, TangoPointCloudData pointCloud) {
+	/**
+	 * Use the TangoSupport library with point cloud data to calculate the depth
+	 * of the point closest to where the user touches the screen. It returns a
+	 * Vector3 in openGL world space.
+	 */
+	private float[] getDepthAtTouchPosition(float u, float v, TangoPointCloudData pointCloud) {
 //        TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
-        if (pointCloud == null) {
-            return null;
-        }
+		if (pointCloud == null) {
+			return null;
+		}
 
-        double rgbTimestamp;
-        TangoImageBuffer imageBuffer = mCurrentImageBuffer;
-        rgbTimestamp = imageBuffer.timestamp; // CPU.
+		double rgbTimestamp;
+		TangoImageBuffer imageBuffer = mCurrentImageBuffer;
+		rgbTimestamp = imageBuffer.timestamp; // CPU.
 
-        // We need to calculate the transform between the color camera at the
-        // time the user clicked and the depth camera at the time the depth
-        // cloud was acquired.
-        TangoPoseData colorTdepthPose = TangoSupport.calculateRelativePose(
-                rgbTimestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
-                pointCloud.timestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH);
+		// We need to calculate the transform between the color camera at the
+		// time the user clicked and the depth camera at the time the depth
+		// cloud was acquired.
+		TangoPoseData colorTdepthPose = TangoSupport.calculateRelativePose(
+				rgbTimestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
+				pointCloud.timestamp, TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH);
 
-        float[] point;
-        double[] identityTranslation = {0.0, 0.0, 0.0};
-        double[] identityRotation = {0.0, 0.0, 0.0, 1.0};
-        point = TangoSupport.getDepthAtPointNearestNeighbor(pointCloud,
-                colorTdepthPose.translation, colorTdepthPose.rotation,
-                u, v, mDisplayRotation, identityTranslation, identityRotation);
-        if (point == null) {
-            return null;
-        }
+		float[] point;
+		double[] identityTranslation = {0.0, 0.0, 0.0};
+		double[] identityRotation = {0.0, 0.0, 0.0, 1.0};
+		point = TangoSupport.getDepthAtPointNearestNeighbor(pointCloud,
+				colorTdepthPose.translation, colorTdepthPose.rotation,
+				u, v, mDisplayRotation, identityTranslation, identityRotation);
+		if (point == null) {
+			return null;
+		}
 
-        // Get the transform from depth camera to OpenGL world at the timestamp of the cloud.
-        float[] openGlPoint = colorToADFFrame(pointCloud, point);
-        if (openGlPoint != null) return openGlPoint;
-        return null;
-    }
+		// Get the transform from depth camera to OpenGL world at the timestamp of the cloud.
+		float[] openGlPoint = colorToADFFrame(pointCloud, point);
+		if (openGlPoint != null) return openGlPoint;
+		return null;
+	}
 
-    private float[] colorToADFFrame(TangoPointCloudData pointCloud, float[] point) {
-        TangoSupport.TangoMatrixTransformData transform =
-            TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
-                    TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-                    TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
-                    TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-                    TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-                    TangoSupport.ROTATION_IGNORED);
-        return frameTransform(pointCloud.timestamp,point,transform);
-    }
+	private float[] colorToADFFrame(TangoPointCloudData pointCloud, float[] point) {
+		TangoSupport.TangoMatrixTransformData transform =
+				TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
+						TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+						TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
+						TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+						TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+						TangoSupport.ROTATION_IGNORED);
+		return frameTransform(pointCloud.timestamp, point, transform);
+	}
 
-    private float[] depthToADFFrame(TangoPointCloudData pointCloud, float[] point) {
-        TangoSupport.TangoMatrixTransformData transform =
-                TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
-                        TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-                        TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
-                        TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-                        TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-                        TangoSupport.ROTATION_IGNORED);
-        return frameTransform(pointCloud.timestamp,point,transform);
-    }
+	private float[] depthToADFFrame(TangoPointCloudData pointCloud, float[] point) {
+		TangoSupport.TangoMatrixTransformData transform =
+				TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
+						TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+						TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
+						TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+						TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+						TangoSupport.ROTATION_IGNORED);
+		return frameTransform(pointCloud.timestamp, point, transform);
+	}
 
-    private float[] frameTransform(double timestamp, float[] point,TangoSupport.TangoMatrixTransformData transform) {
-        if (transform.statusCode == TangoPoseData.POSE_VALID) {
-            float[] depthPoint = new float[]{point[0], point[1], point[2], 1};
-            float[] openGlPoint = new float[4];
-            Matrix.multiplyMV(openGlPoint, 0, transform.matrix, 0, depthPoint, 0);
-            return openGlPoint;
-        } else {
-            Log.w(TAG, "Could not get depth camera transform at time " + timestamp);
-        }
-        return null;
-    }
+	private float[] frameTransform(double timestamp, float[] point, TangoSupport.TangoMatrixTransformData transform) {
+		if (transform.statusCode == TangoPoseData.POSE_VALID) {
+			float[] depthPoint = new float[]{point[0], point[1], point[2], 1};
+			float[] openGlPoint = new float[4];
+			Matrix.multiplyMV(openGlPoint, 0, transform.matrix, 0, depthPoint, 0);
+			return openGlPoint;
+		} else {
+			Log.w(TAG, "Could not get depth camera transform at time " + timestamp);
+		}
+		return null;
+	}
 
-    private void setDisplayRotation() {
-        Display display = getWindowManager().getDefaultDisplay();
-        mDisplayRotation = display.getRotation();
-    }
+	private void setDisplayRotation() {
+		Display display = getWindowManager().getDefaultDisplay();
+		mDisplayRotation = display.getRotation();
+	}
 
-    private class mTangoUpdateListener extends Tango.TangoUpdateCallback {
-        @Override
-        public void onFrameAvailable(int cameraId) {
-            if (cameraId == ACTIVE_CAMERA_INTRINSICS) {
-                tangoFrameIsAvailable.set(true);
-                mainSurfaceView.requestRender();
-            }
-        }
+	@Override
+	public void onEnvironmentSelected(EnvironmentDAO environment) {
+		loadEnvironment(environment.getId());
+	}
 
-        @Override
-        public void onTangoEvent(TangoEvent event) {
-            if (tangoUx != null) {
-                tangoUx.updateTangoEvent(event);
-            }
-        }
+	private class mTangoUpdateListener extends Tango.TangoUpdateCallback {
+		@Override
+		public void onFrameAvailable(int cameraId) {
+			if (cameraId == ACTIVE_CAMERA_INTRINSICS) {
+				tangoFrameIsAvailable.set(true);
+				mainSurfaceView.requestRender();
+			}
+		}
 
-        @Override
-        public void onPoseAvailable(TangoPoseData pose) {
-            if (tangoUx != null) {
-                tangoUx.updatePoseStatus(pose.statusCode);
-            }
-        }
+		@Override
+		public void onTangoEvent(TangoEvent event) {
+			if (tangoUx != null) {
+				tangoUx.updateTangoEvent(event);
+			}
+		}
 
-        @Override
-        public void onPointCloudAvailable(final TangoPointCloudData pointCloud) {
-            if (tangoUx != null) {
-                tangoUx.updatePointCloud(pointCloud);
-            }
-            mPointCloudManager.updatePointCloud(pointCloud);
-            newPointcloud = true;
+		@Override
+		public void onPoseAvailable(TangoPoseData pose) {
+			if (tangoUx != null) {
+				tangoUx.updatePoseStatus(pose.statusCode);
+			}
+		}
 
-            if (floorLevel != -1000.0f) {
+		@Override
+		public void onPointCloudAvailable(final TangoPointCloudData pointCloud) {
+			if (tangoUx != null) {
+				tangoUx.updatePointCloud(pointCloud);
+			}
+			mPointCloudManager.updatePointCloud(pointCloud);
+			newPointcloud = true;
 
-                final double currentTimeStamp = pointCloud.timestamp;
-                final double pointCloudFrameDelta =
-                        (currentTimeStamp - mPointCloudPreviousTimeStamp) * 1000;
-                mPointCloudPreviousTimeStamp = currentTimeStamp;
+			if (floorLevel != -1000.0f) {
 
-                mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
+				final double currentTimeStamp = pointCloud.timestamp;
+				final double pointCloudFrameDelta =
+						(currentTimeStamp - mPointCloudPreviousTimeStamp) * 1000;
+				mPointCloudPreviousTimeStamp = currentTimeStamp;
+
+				mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
 
 
-                if (mPointCloudTimeToNextUpdate < 0.0 && capturePointcloud ) {
-                    if(calculationTimes.getN()>20){
-                        mPointCloudTimeToNextUpdate = Math.max(UPDATE_INTERVAL_MS,calculationTimes.getMean());
-                    } else {
-                        mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
-                    }
+				if (mPointCloudTimeToNextUpdate < 0.0 && capturePointcloud) {
+					if (calculationTimes.getN() > 20) {
+						mPointCloudTimeToNextUpdate = Math.max(UPDATE_INTERVAL_MS, calculationTimes.getMean());
+					} else {
+						mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
+					}
 
-                    if(pointCloud.points != null){
-                        AsyncTask<TangoPointCloudData, Integer, List<List<float[]>> > pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<List<float[]>> >() {
+					if (pointCloud.points != null) {
+						AsyncTask<TangoPointCloudData, Integer, List<List<float[]>>> pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<List<float[]>>>() {
 
-                            public long start;
+							public long start;
 
-                            @Override
-                            protected List<List<float[]>> doInBackground(TangoPointCloudData... params) {
-                                start = System.currentTimeMillis();
-                                if (MAP_CENTER) {
+							@Override
+							protected List<List<float[]>> doInBackground(TangoPointCloudData... params) {
+								start = System.currentTimeMillis();
+								if (MAP_CENTER) {
 
-                                    float[] openGLFrame = getDepthAtTouchPosition(0.5f, 0.5f, pointCloud);
-                                    if (openGLFrame != null) {
-                                        Log.d(TAG, "Pointcloud: " + openGLFrame[0] + " " + openGLFrame[1] + " " + openGLFrame[2]);
+									float[] openGLFrame = getDepthAtTouchPosition(0.5f, 0.5f, pointCloud);
+									if (openGLFrame != null) {
+										Log.d(TAG, "Pointcloud: " + openGLFrame[0] + " " + openGLFrame[1] + " " + openGLFrame[2]);
 
-                                        double d = Math.abs(floorLevel - openGLFrame[1]);
-                                        List<List<float[]>> result = new ArrayList<>();
-                                        List<float[]> tmpResult = new ArrayList<>(1);
-                                        if (d < ACCURACY) {
-                                            tmpResult.add(openGLFrame);
-                                            result.add(tmpResult);
-                                            return result;
-                                        } else {
-                                            tmpResult.add(1,openGLFrame);
-                                            return result;
-                                            // TODO: add as obstacle
-                                        }
-                                    } else {
+										double d = Math.abs(floorLevel - openGLFrame[1]);
+										List<List<float[]>> result = new ArrayList<>();
+										List<float[]> tmpResult = new ArrayList<>(1);
+										if (d < ACCURACY) {
+											tmpResult.add(openGLFrame);
+											result.add(tmpResult);
+											return result;
+										} else {
+											tmpResult.add(1, openGLFrame);
+											return result;
+											// TODO: add as obstacle
+										}
+									} else {
 //                                    Log.d(TAG,"Point is null");
-                                        return null;
-                                    }
-                                } else {
-                                    TangoSupport.TangoMatrixTransformData transform =
-                                            TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
-                                                    TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-                                                    TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-                                                    TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-                                                    TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-                                                    TangoSupport.ROTATION_IGNORED);
-                                    FloatBuffer points = pointCloud.points;
-                                    float[] depthFrame;
-                                    List<List<float[]>> result = new ArrayList<>();
-                                    List<float[]> floor = new LinkedList<>();
-                                    List<float[]> obstacles = new LinkedList<>();
-                                    int i = POINTCLOUD_SAMPLE_RATE;
-                                    while (points.hasRemaining()) {
-                                        depthFrame = new float[]{points.get(), points.get(), points.get()};
-                                        float C = points.get();
-                                        if (i == 0) {
+										return null;
+									}
+								} else {
+									TangoSupport.TangoMatrixTransformData transform =
+											TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
+													TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+													TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
+													TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+													TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+													TangoSupport.ROTATION_IGNORED);
+									FloatBuffer points = pointCloud.points;
+									float[] depthFrame;
+									List<List<float[]>> result = new ArrayList<>();
+									List<float[]> floor = new LinkedList<>();
+									List<float[]> obstacles = new LinkedList<>();
+									int i = POINTCLOUD_SAMPLE_RATE;
+									while (points.hasRemaining()) {
+										depthFrame = new float[]{points.get(), points.get(), points.get()};
+										float C = points.get();
+										if (i == 0) {
 //                                            float[] worldFrame = depthToADFFrame(pointCloud, depthFrame);
 //                                            float[] worldFrame = TangoSupport.transformPoint(transform.matrix,depthFrame);
-                                            float[] worldFrame = frameTransform(currentTimeStamp,depthFrame,transform);
-                                            double d = Math.abs(floorLevel - worldFrame[1]);
-                                            if (d < ACCURACY) {
-                                                floor.add(worldFrame);
-                                            } else if(d > OBSTACLE_HEIGHT) {
-                                                obstacles.add(worldFrame);
-                                            }
-                                            i = POINTCLOUD_SAMPLE_RATE;
-                                        } else {
-                                            i--;
-                                        }
-                                    }
-                                    Log.d(TAG, "found floorpoints: " + result.size());
-                                    result.add(0,floor);
-                                    result.add(1,obstacles);
-                                    return result;
-                                }
-                            }
+											float[] worldFrame = frameTransform(currentTimeStamp, depthFrame, transform);
+											double d = Math.abs(floorLevel - worldFrame[1]);
+											if (d < ACCURACY) {
+												floor.add(worldFrame);
+											} else if (d > OBSTACLE_HEIGHT) {
+												obstacles.add(worldFrame);
+											}
+											i = POINTCLOUD_SAMPLE_RATE;
+										} else {
+											i--;
+										}
+									}
+									Log.d(TAG, "found floorpoints: " + result.size());
+									result.add(0, floor);
+									result.add(1, obstacles);
+									return result;
+								}
+							}
 
-                            @Override
-                            protected void onPostExecute(List<List<float[]>> floats) {
-                                super.onPostExecute(floats);
-                                if (floats != null) {
-                                    synchronized (floorPoints) {
+							@Override
+							protected void onPostExecute(List<List<float[]>> floats) {
+								super.onPostExecute(floats);
+								if (floats != null) {
+									synchronized (floorPoints) {
 //                                        floorPoints.add(new Vector3(x,z,-y));
-                                        for (float[] f : floats.get(0)) {
-                                            floorPoints.add(new Vector3(f[0], f[1], f[2]));
-                                        }
-                                        for  (float[] f : floats.get(1)){
-                                            obstaclePoints.add(new Vector3(f[0], f[1], f[2]));
-                                        }
+										for (float[] f : floats.get(0)) {
+											floorPoints.add(new Vector3(f[0], f[1], f[2]));
+										}
+										for (float[] f : floats.get(1)) {
+											obstaclePoints.add(new Vector3(f[0], f[1], f[2]));
+										}
 //                                        renderer.addToFloorPlan(floorPoints);
-                                        newPoints = true;
-                                    }
-                                }
-                                long calcTime = System.currentTimeMillis() - start;
-                                calculationTimes.addValue(calcTime);
-                                Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d",  calculationTimes.getMean(),calcTime));
+										newPoints = true;
+									}
+								}
+								long calcTime = System.currentTimeMillis() - start;
+								calculationTimes.addValue(calcTime);
+								Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d", calculationTimes.getMean(), calcTime));
 //                                Log.d(TAG, String.format("New average floor level %1$.3f, Stats: %2$s",floorLevel.getMean(),floorLevel.toString()));
-                            }
-                        };
-                        pointCloudTask.execute(pointCloud);
-                    }
-                }
+							}
+						};
+						pointCloudTask.execute(pointCloud);
+					}
+				}
 
 
-            }
+			}
 
-        }
-    }
+		}
+	}
 
-    private boolean hasCameraPermission() {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
-                PackageManager.PERMISSION_GRANTED;
-    }
+	private boolean hasCameraPermission() {
+		return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+				PackageManager.PERMISSION_GRANTED;
+	}
 
-        private boolean checkAndRequestPermissions() {
-        if (!hasCameraPermission()) {
-            requestCameraPermission();
-            return false;
-        }
-        return true;
-    }
+	private boolean checkAndRequestPermissions() {
+		if (!hasCameraPermission()) {
+			requestCameraPermission();
+			return false;
+		}
+		return true;
+	}
 
-        private void requestCameraPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
-            showRequestPermissionRationale();
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
-                    0);
-        }
-    }
+	private void requestCameraPermission() {
+		if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+			showRequestPermissionRationale();
+		} else {
+			ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
+					0);
+		}
+	}
 
-        private void showRequestPermissionRationale() {
-        final AlertDialog dialog = new AlertDialog.Builder(this)
-                .setMessage("AR Navigation requires camera permission")
-                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        ActivityCompat.requestPermissions(ArActivity.this,
-                                new String[]{Manifest.permission.CAMERA}, 0);
-                    }
-                })
-                .create();
-        dialog.show();
-    }
+	private void showRequestPermissionRationale() {
+		final AlertDialog dialog = new AlertDialog.Builder(this)
+				.setMessage("AR Navigation requires camera permission")
+				.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialogInterface, int i) {
+						ActivityCompat.requestPermissions(ArActivity.this,
+								new String[]{Manifest.permission.CAMERA}, 0);
+					}
+				})
+				.create();
+		dialog.show();
+	}
 }
