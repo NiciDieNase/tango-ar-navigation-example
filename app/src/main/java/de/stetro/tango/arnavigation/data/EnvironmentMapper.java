@@ -161,4 +161,8 @@ public class EnvironmentMapper {
 	public void setFloorLevel(double floorLevel) {
 		this.floorLevel = floorLevel;
 	}
+
+	public void setListener(OnMapUpdateListener listener) {
+		this.listener = listener;
+	}
 }

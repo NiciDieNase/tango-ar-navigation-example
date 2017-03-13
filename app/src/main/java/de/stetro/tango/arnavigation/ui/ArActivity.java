@@ -183,8 +183,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			mapper = new EnvironmentMapper();
 			renderer = new SceneRenderer(this);
 		}
-
-//        tango = new Tango(this,null);
+		mapper.setListener(this);
 
 		tangoUx = new TangoUx(this);
 		tangoUx.setLayout(uxLayout);
