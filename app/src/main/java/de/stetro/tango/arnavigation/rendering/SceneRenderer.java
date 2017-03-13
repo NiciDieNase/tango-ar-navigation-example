@@ -192,12 +192,6 @@ public class SceneRenderer extends RajawaliRenderer {
                 try {
                     List<Vector2> path = finder.findPathBetween(startPoint.getPosition(), endPoint.getPosition());
                     for (Vector2 vector2 : path) {
-//                        Cube cube = new Cube(0.2f);
-//                        cube.setMaterial(blue);
-//                        cube.setPosition(new Vector3(vector2.getX(), -1.2, vector2.getY()));
-//                        getCurrentScene().addChild(cube);
-//                        pathCubes.add(cube);
-
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
                     Stack linePoints = new Stack();

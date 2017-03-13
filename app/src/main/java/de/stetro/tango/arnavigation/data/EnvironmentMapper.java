@@ -26,7 +26,7 @@ public class EnvironmentMapper {
 
 	public static final int QUAD_TREE_START = -60;
 	public static final int QUAD_TREE_RANGE = 120;
-	public static final int POINTCLOUD_SAMPLE_RATE = 5;
+	public static final int POINTCLOUD_SAMPLE_RATE = 9;
 	private static final double ACCURACY = 0.15;
 	private static final double OBSTACLE_HEIGHT = 0.4;
 	private static final String TAG = EnvironmentMapper.class.getSimpleName();
@@ -34,13 +34,12 @@ public class EnvironmentMapper {
 	QuadTree map;
 	private boolean running = false;
 	private double floorLevel = -1000.0f;
-	private List<Vector3> floorPoints = new LinkedList<>();
-	private List<Vector3> obstaclePoints = new LinkedList<>();
 	private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
 	private OnMapUpdateListener listener;
 
 	public interface OnMapUpdateListener{
-		public void onMapUpdate(QuadTree data);
+		void onMapUpdate(QuadTree data);
+		void onNewCalcTimes(double avg, long last);
 	}
 
 	public EnvironmentMapper(){
@@ -55,9 +54,8 @@ public class EnvironmentMapper {
 		if (this.getFloorLevel() != -1000.0f) {
 
 			final double currentTimeStamp = pointCloud.timestamp;
-
 				if (pointCloud.points != null) {
-					AsyncTask<TangoPointCloudData, Integer, List<List<float[]>>> pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<List<float[]>>>() {
+					new AsyncTask<TangoPointCloudData, Integer,QuadTree>() {
 
 						public long start;
 
@@ -67,7 +65,7 @@ public class EnvironmentMapper {
 						}
 
 						@Override
-						protected List<List<float[]>> doInBackground(TangoPointCloudData... params) {
+						protected QuadTree doInBackground(TangoPointCloudData... params) {
 							start = System.currentTimeMillis();
 							TangoSupport.TangoMatrixTransformData transform =
 									TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
@@ -79,8 +77,8 @@ public class EnvironmentMapper {
 							FloatBuffer points = pointCloud.points;
 							float[] depthFrame;
 							List<List<float[]>> result = new ArrayList<>();
-							List<float[]> floor = new LinkedList<>();
-							List<float[]> obstacles = new LinkedList<>();
+							List<Vector3> floor = new LinkedList<>();
+							List<Vector3> obstacles = new LinkedList<>();
 							int i = POINTCLOUD_SAMPLE_RATE;
 							while (points.hasRemaining()) {
 								depthFrame = new float[]{points.get(), points.get(), points.get()};
@@ -89,9 +87,9 @@ public class EnvironmentMapper {
 									float[] worldFrame = MappingUtils.frameTransform(currentTimeStamp, depthFrame, transform);
 									double d = Math.abs(getFloorLevel() - worldFrame[1]);
 									if (d < ACCURACY) {
-										floor.add(worldFrame);
+										floor.add(new Vector3(worldFrame[0],worldFrame[1],worldFrame[2]));
 									} else if (d > OBSTACLE_HEIGHT) {
-										obstacles.add(worldFrame);
+										obstacles.add(new Vector3(worldFrame[0],worldFrame[1],worldFrame[2]));
 									}
 									i = POINTCLOUD_SAMPLE_RATE;
 								} else {
@@ -99,59 +97,33 @@ public class EnvironmentMapper {
 								}
 							}
 							Log.d(TAG, "found floorpoints: " + result.size());
-							result.add(0, floor);
-							result.add(1, obstacles);
-							return result;
+
+							map.setObstacle(obstacles);
+							map.setFilledInvalidate3(floor);
+							map.clearObstacleCount();
+							return map.clone();
 						}
 
 						@Override
-						protected void onPostExecute(List<List<float[]>> floats) {
-							super.onPostExecute(floats);
-							if (floats != null) {
-								synchronized (floorPoints) {
-									for (float[] f : floats.get(0)) {
-										floorPoints.add(new Vector3(f[0], f[1], f[2]));
-									}
-									for (float[] f : floats.get(1)) {
-										obstaclePoints.add(new Vector3(f[0], f[1], f[2]));
-									}
-								}
+						protected void onPostExecute(QuadTree data) {
+							if(listener != null){
+								listener.onMapUpdate(data);
 							}
 							running = false;
 							long calcTime = System.currentTimeMillis() - start;
 							calculationTimes.addValue(calcTime);
 							Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d", calculationTimes.getMean(), calcTime));
-
-							map.setObstacle(obstaclePoints);
-							map.setFilledInvalidate3(floorPoints);
-							map.clearObstacleCount();
-
-
 							if(listener != null){
-								// TODO return new Quadtree
-								listener.onMapUpdate(map.clone());
+								listener.onNewCalcTimes(calculationTimes.getMean(),calcTime);
 							}
 						}
-					};
-					pointCloudTask.execute(pointCloud);
+					}.execute(pointCloud);
 				}
 			}
 		}
 
 	public boolean isRunning() {
 		return running;
-	}
-
-	public void setRunning(boolean running) {
-		this.running = running;
-	}
-
-	public QuadTree getMap() {
-		return map;
-	}
-
-	public void setMap(QuadTree map) {
-		this.map = map;
 	}
 
 	public double getFloorLevel() {
@@ -165,4 +137,5 @@ public class EnvironmentMapper {
 	public void setListener(OnMapUpdateListener listener) {
 		this.listener = listener;
 	}
+
 }

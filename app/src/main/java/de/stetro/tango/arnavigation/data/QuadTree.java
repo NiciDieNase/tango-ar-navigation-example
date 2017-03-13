@@ -12,7 +12,7 @@ import java.util.List;
 public class QuadTree implements Serializable, Cloneable{
 
     public static final double PLANE_SPACER = 0.02;
-    public static final int OBSTACLE_THRESHOLD = 100;
+    public static final int OBSTACLE_THRESHOLD = 20;
     private static final String TAG = QuadTree.class.getSimpleName();
 
     private transient Vector2 position;
@@ -160,7 +160,9 @@ public class QuadTree implements Serializable, Cloneable{
             }
         }
         if(updateListener){
-            listener.OnQuadTreeUpdate();
+            if(listener != null){
+                listener.OnQuadTreeUpdate();
+            }
             return true;
         }
         return false;

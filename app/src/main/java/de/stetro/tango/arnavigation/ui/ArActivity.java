@@ -47,7 +47,6 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -69,7 +68,8 @@ import de.stetro.tango.arnavigation.ui.views.MapView;
 
 import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchPosition;
 
-public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener, EnvironmentMapper.OnMapUpdateListener {
+public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener,
+		EnvironmentMapper.OnMapUpdateListener {
 
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
@@ -107,20 +107,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	protected double rgbFrameTimestamp;
 	protected double cameraPoseTimestamp;
-	@Bind(R.id.gl_main_surface_view)
-	RajawaliSurfaceView mainSurfaceView;
-	@Bind(R.id.toolbar)
-	Toolbar toolbar;
-	@Bind(R.id.tango_ux_layout)
-	TangoUxLayout uxLayout;
-	@Bind(R.id.map_view)
-	MapView mapView;
-	@Bind(R.id.fab_pause)
-	FloatingActionButton fabPause;
-	@Bind(R.id.fab_save)
-	FloatingActionButton fabSave;
-	@Bind(R.id.progressSpinner)
-	ProgressBar progressBar;
+
+	@Bind(R.id.gl_main_surface_view) RajawaliSurfaceView mainSurfaceView;
+	@Bind(R.id.toolbar) Toolbar toolbar;
+	@Bind(R.id.tango_ux_layout) TangoUxLayout uxLayout;
+	@Bind(R.id.map_view) MapView mapView;
+	@Bind(R.id.fab_pause) FloatingActionButton fabPause;
+	@Bind(R.id.fab_save) FloatingActionButton fabSave;
+	@Bind(R.id.progressSpinner) ProgressBar progressBar;
+
 	private int mDisplayRotation;
 	private TangoImageBuffer mCurrentImageBuffer;
 	private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
@@ -130,6 +125,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private boolean capturePointcloud = true;
 	private boolean newPointcloud = false;
 	private boolean localized = false;
+	private boolean togglePointcloud = false;
 	private boolean newQuadtree = false;
 	private QuadTree newMapData;
 
@@ -244,13 +240,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		FileOutputStream fout;
 		ObjectOutputStream oos;
 		try {
-//			fout = new FileOutputStream(name + ".tree");
 			fout = openFileOutput(name + ".tree", Context.MODE_PRIVATE);
 			oos = new ObjectOutputStream(fout);
 			oos.writeObject(floorPlanData);
 			Log.d(TAG, fout.getFD().toString());
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -261,15 +254,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		ObjectInputStream os;
 		QuadTree tree = null;
 		try {
-//			is = new FileInputStream(name + ".tree");
 			is = openFileInput(name + ".tree");
 			os = new ObjectInputStream(is);
 			tree = (QuadTree) os.readObject();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 		return tree;
@@ -335,7 +323,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				);
 				break;
 			case R.id.toggle_point_cloud:
-				renderer.showPointCloud(!renderer.getRenderPointCloud());
+				togglePointcloud = true;
+				Snackbar.make(uxLayout, "Pointcloud visibility is now " + renderer.getRenderPointCloud(),Snackbar.LENGTH_SHORT).show();
 				break;
 			case R.id.toggle_floor_plan:
 				renderer.renderFloorPlan(!renderer.getRenderFloorPlan());
@@ -483,6 +472,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		this.newQuadtree = true;
 	}
 
+	@Override
+	public void onNewCalcTimes(double avg, long last) {
+
+	}
+
 	private boolean checkAndRequestPermissions() {
 		if (!(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
 				PackageManager.PERMISSION_GRANTED)) {
@@ -550,7 +544,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				tangoUx.updatePointCloud(pointCloud);
 			}
 			mPointCloudManager.updatePointCloud(pointCloud);
-			if(!mapper.isRunning()){
+			newPointcloud = true;
+			if(!mapper.isRunning() && capturePointcloud){
 				mapper.mapPointCloud(pointCloud);
 			}
 		}
@@ -654,6 +649,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				if (localized) {
 					renderer.renderFloorPlan(true);
 					localized = false;
+				}
+				if(togglePointcloud){
+					renderer.showPointCloud(!renderer.getRenderPointCloud());
+					togglePointcloud = false;
 				}
 			}
 		}

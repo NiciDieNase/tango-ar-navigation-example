@@ -97,6 +97,7 @@ public class MapView extends View implements View.OnTouchListener, MapTransforma
     public void setFloorPlanData(QuadTree floorPlanData) {
         this.floorPlanData = floorPlanData;
         this.floorPlanData.setListener(this);
+        this.OnQuadTreeUpdate();
     }
 
     @Override
