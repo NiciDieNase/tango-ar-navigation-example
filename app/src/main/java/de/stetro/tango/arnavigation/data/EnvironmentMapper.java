@@ -30,6 +30,7 @@ public class EnvironmentMapper {
 	private static final double ACCURACY = 0.15;
 	private static final double OBSTACLE_HEIGHT = 0.4;
 	private static final String TAG = EnvironmentMapper.class.getSimpleName();
+	public static final double OBSTACLE_BUFFER = .1; // should be similar to size of smallest quad-tree-unit
 
 	QuadTree map;
 	private boolean running = false;
@@ -89,7 +90,14 @@ public class EnvironmentMapper {
 									if (d < ACCURACY) {
 										floor.add(new Vector3(worldFrame[0],worldFrame[1],worldFrame[2]));
 									} else if (d > OBSTACLE_HEIGHT) {
-										obstacles.add(new Vector3(worldFrame[0],worldFrame[1],worldFrame[2]));
+										obstacles.add(new Vector3(worldFrame[0]+ OBSTACLE_BUFFER,worldFrame[1],worldFrame[2]));
+										obstacles.add(new Vector3(worldFrame[0]- OBSTACLE_BUFFER,worldFrame[1],worldFrame[2]));
+										obstacles.add(new Vector3(worldFrame[0], worldFrame[1],worldFrame[2]+ OBSTACLE_BUFFER));
+										obstacles.add(new Vector3(worldFrame[0], worldFrame[1],worldFrame[2]- OBSTACLE_BUFFER));
+										obstacles.add(new Vector3(worldFrame[0]+ OBSTACLE_BUFFER,worldFrame[1],worldFrame[2]+ OBSTACLE_BUFFER));
+										obstacles.add(new Vector3(worldFrame[0]+ OBSTACLE_BUFFER,worldFrame[1],worldFrame[2]- OBSTACLE_BUFFER));
+										obstacles.add(new Vector3(worldFrame[0]- OBSTACLE_BUFFER,worldFrame[1],worldFrame[2]- OBSTACLE_BUFFER));
+										obstacles.add(new Vector3(worldFrame[0]- OBSTACLE_BUFFER,worldFrame[1],worldFrame[2]- OBSTACLE_BUFFER));
 									}
 									i = POINTCLOUD_SAMPLE_RATE;
 								} else {
