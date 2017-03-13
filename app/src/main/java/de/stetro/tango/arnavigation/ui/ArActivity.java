@@ -90,7 +90,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	public static final double UPDATE_INTERVAL_MS = 500.0;
 	public static final int POINTCLOUD_SAMPLE_RATE = 5;
-	public static final boolean MAP_CENTER = false;
 	private static final double ACCURACY = 0.15;
 	private static final double OBSTACLE_HEIGHT = 0.4;
 
@@ -507,9 +506,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						points.add(floorPoints);
 						points.add(obstaclePoints);
 						renderer.addToFloorPlan(points);
-						if (MAP_CENTER) {
-							renderer.setTrackPosition(floorPoints.get(0));
-						}
 						floorPoints.clear();
 						newPoints = false;
 					}
@@ -531,15 +527,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			float v = motionEvent.getY() / view.getHeight();
 
 			try {
-				// Fit a plane on the clicked point using the latest poiont cloud data
-//                TangoSupport.IntersectionPointPlaneModelPair planeModel = doFitPlane(u, v, rgbFrameTimestamp);
-//                if (planeModel != null) {
-//                    floorPlane = planeModel;
-//                    Snackbar.make(view,R.string.floorSet,Snackbar.LENGTH_SHORT).show();
-//                } else {
-//                    Snackbar.make(view,R.string.no_depth_data, Snackbar.LENGTH_SHORT).show();
-//                }
-//                float[] planeFitTransform;
 				synchronized (this) {
 					float[] touchPosition = getDepthAtTouchPosition(u, v, mPointCloudManager.getLatestPointCloud());
 					if (touchPosition != null) {
@@ -721,65 +708,41 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 							@Override
 							protected List<List<float[]>> doInBackground(TangoPointCloudData... params) {
 								start = System.currentTimeMillis();
-								if (MAP_CENTER) {
-
-									float[] openGLFrame = getDepthAtTouchPosition(0.5f, 0.5f, pointCloud);
-									if (openGLFrame != null) {
-										Log.d(TAG, "Pointcloud: " + openGLFrame[0] + " " + openGLFrame[1] + " " + openGLFrame[2]);
-
-										double d = Math.abs(floorLevel - openGLFrame[1]);
-										List<List<float[]>> result = new ArrayList<>();
-										List<float[]> tmpResult = new ArrayList<>(1);
-										if (d < ACCURACY) {
-											tmpResult.add(openGLFrame);
-											result.add(tmpResult);
-											return result;
-										} else {
-											tmpResult.add(1, openGLFrame);
-											return result;
-											// TODO: add as obstacle
-										}
-									} else {
-//                                    Log.d(TAG,"Point is null");
-										return null;
-									}
-								} else {
-									TangoSupport.TangoMatrixTransformData transform =
-											TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
-													TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-													TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-													TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-													TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-													TangoSupport.ROTATION_IGNORED);
-									FloatBuffer points = pointCloud.points;
-									float[] depthFrame;
-									List<List<float[]>> result = new ArrayList<>();
-									List<float[]> floor = new LinkedList<>();
-									List<float[]> obstacles = new LinkedList<>();
-									int i = POINTCLOUD_SAMPLE_RATE;
-									while (points.hasRemaining()) {
-										depthFrame = new float[]{points.get(), points.get(), points.get()};
-										float C = points.get();
-										if (i == 0) {
+								TangoSupport.TangoMatrixTransformData transform =
+										TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
+												TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+												TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
+												TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+												TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+												TangoSupport.ROTATION_IGNORED);
+								FloatBuffer points = pointCloud.points;
+								float[] depthFrame;
+								List<List<float[]>> result = new ArrayList<>();
+								List<float[]> floor = new LinkedList<>();
+								List<float[]> obstacles = new LinkedList<>();
+								int i = POINTCLOUD_SAMPLE_RATE;
+								while (points.hasRemaining()) {
+									depthFrame = new float[]{points.get(), points.get(), points.get()};
+									float C = points.get();
+									if (i == 0) {
 //                                            float[] worldFrame = depthToADFFrame(pointCloud, depthFrame);
 //                                            float[] worldFrame = TangoSupport.transformPoint(transform.matrix,depthFrame);
-											float[] worldFrame = frameTransform(currentTimeStamp, depthFrame, transform);
-											double d = Math.abs(floorLevel - worldFrame[1]);
-											if (d < ACCURACY) {
-												floor.add(worldFrame);
-											} else if (d > OBSTACLE_HEIGHT) {
-												obstacles.add(worldFrame);
-											}
-											i = POINTCLOUD_SAMPLE_RATE;
-										} else {
-											i--;
+										float[] worldFrame = frameTransform(currentTimeStamp, depthFrame, transform);
+										double d = Math.abs(floorLevel - worldFrame[1]);
+										if (d < ACCURACY) {
+											floor.add(worldFrame);
+										} else if (d > OBSTACLE_HEIGHT) {
+											obstacles.add(worldFrame);
 										}
+										i = POINTCLOUD_SAMPLE_RATE;
+									} else {
+										i--;
 									}
-									Log.d(TAG, "found floorpoints: " + result.size());
-									result.add(0, floor);
-									result.add(1, obstacles);
-									return result;
 								}
+								Log.d(TAG, "found floorpoints: " + result.size());
+								result.add(0, floor);
+								result.add(1, obstacles);
+								return result;
 							}
 
 							@Override
