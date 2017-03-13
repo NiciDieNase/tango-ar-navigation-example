@@ -6,7 +6,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
-import android.opengl.Matrix;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -45,7 +44,6 @@ import com.projecttango.tangosupport.TangoPointCloudManager;
 import com.projecttango.tangosupport.TangoSupport;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
 import java.io.FileInputStream;
@@ -55,24 +53,23 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import de.stetro.tango.arnavigation.R;
+import de.stetro.tango.arnavigation.data.EnvironmentMapper;
 import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
 import de.stetro.tango.arnavigation.rendering.SceneRenderer;
 import de.stetro.tango.arnavigation.ui.SelectEnvironmentFragment.EnvironmentSelectionListener;
+import de.stetro.tango.arnavigation.ui.util.MappingUtils;
 import de.stetro.tango.arnavigation.ui.util.ScenePreFrameCallbackAdapter;
 import de.stetro.tango.arnavigation.ui.views.MapView;
 
 
-public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener {
+public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener, EnvironmentMapper.OnMapUpdateListener {
 
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
@@ -89,9 +86,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
 
 	public static final double UPDATE_INTERVAL_MS = 500.0;
-	public static final int POINTCLOUD_SAMPLE_RATE = 5;
-	private static final double ACCURACY = 0.15;
-	private static final double OBSTACLE_HEIGHT = 0.4;
 
 	// This changes the Camera Texture and Intrinsics
 	protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
@@ -101,11 +95,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	public static final String KEY_ENVIRONMENT_ID = "environment_id";
 	protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 
-	private double floorLevel = -1000.0f;
 	protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
 	protected Tango tango;
 	protected TangoUx tangoUx;
 	protected TangoCameraIntrinsics intrinsics;
+	protected EnvironmentMapper mapper;
 
 	protected DeviceExtrinsics extrinsics;
 	private TangoPointCloudManager mPointCloudManager;
@@ -133,8 +127,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private int mDisplayRotation;
 	private double mPointCloudPreviousTimeStamp;
 	private double mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
-	private List<Vector3> floorPoints = new LinkedList<>();
-	private List<Vector3> obstaclePoints = new LinkedList<>();
 	private TangoImageBuffer mCurrentImageBuffer;
 	private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
 	private float[] manualPoint;
@@ -145,8 +137,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private boolean manualAdd = false;
 	private boolean newPointcloud = false;
 	private boolean newPoints = false;
-	private boolean newQuadtree = false;
 	private boolean localized = false;
+	private boolean newQuadtree = false;
+	private QuadTree newMapData;
 
 
 	private static DeviceExtrinsics setupExtrinsics(Tango tango) {
@@ -182,7 +175,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			if (environment_id != 0) {
 				EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
 				adfuuid = environment.getADFUUID();
-				floorLevel = environment.getFloorLevel();
+				mapper.setFloorLevel(environment.getFloorLevel());
 //                tree = QuadTreeDAO.loadTreeFromRootNode(environment.getRootNodeId());
 				tree = loadFromFile(environment.getADFUUID());
 				capturePointcloud = false;
@@ -196,8 +189,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		tangoUx = new TangoUx(this);
 
 		if (tree != null) {
+			mapper = new EnvironmentMapper(tree);
 			renderer = new SceneRenderer(this, tree);
 		} else {
+			mapper = new EnvironmentMapper();
 			renderer = new SceneRenderer(this);
 		}
 
@@ -421,7 +416,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			}
 		});
 		if(tree != null){
-			renderer.setFloorLevel(floorLevel);
+			renderer.setFloorLevel(mapper.getFloorLevel());
 		}
 	}
 
@@ -491,28 +486,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						newPointcloud = false;
 					}
 					if(newQuadtree){
-						renderer.setFloorLevel(floorLevel);
-						renderer.setQuadTree(tree);
+						renderer.setFloorLevel(mapper.getFloorLevel());
+						mapView.setFloorPlanData(newMapData);
+						renderer.setQuadTree(newMapData);
 
 						newQuadtree = false;
 					}
 					if(localized){
 						renderer.renderFloorPlan(true);
 					}
-				}
-				if (newPoints) {
-					synchronized (floorPoints) {
-						List<List<Vector3>> points = new ArrayList<List<Vector3>>();
-						points.add(floorPoints);
-						points.add(obstaclePoints);
-						renderer.addToFloorPlan(points);
-						floorPoints.clear();
-						newPoints = false;
-					}
-				}
-				if (manualAdd) {
-					renderer.manuelUpdate(manualPoint);
-					manualAdd = false;
 				}
 			}
 		});
@@ -530,10 +512,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				synchronized (this) {
 					float[] touchPosition = getDepthAtTouchPosition(u, v, mPointCloudManager.getLatestPointCloud());
 					if (touchPosition != null) {
-						floorLevel = touchPosition[1];
+						mapper.setFloorLevel(touchPosition[1]);
 						Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
-						Log.d(TAG, "Floor level: " + floorLevel);
-						renderer.setFloorLevel(floorLevel);
+						Log.d(TAG, "Floor level: " + mapper.getFloorLevel());
+						renderer.setFloorLevel(mapper.getFloorLevel());
 						renderer.renderVirtualObjects(true);
 
 						manualPoint = touchPosition;
@@ -589,44 +571,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		}
 
 		// Get the transform from depth camera to OpenGL world at the timestamp of the cloud.
-		float[] openGlPoint = colorToADFFrame(pointCloud, point);
+		float[] openGlPoint = MappingUtils.colorToADFFrame(pointCloud, point);
 		if (openGlPoint != null) return openGlPoint;
 		return null;
 	}
 
-	private float[] colorToADFFrame(TangoPointCloudData pointCloud, float[] point) {
-		TangoSupport.TangoMatrixTransformData transform =
-				TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
-						TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-						TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
-						TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-						TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-						TangoSupport.ROTATION_IGNORED);
-		return frameTransform(pointCloud.timestamp, point, transform);
-	}
 
-	private float[] depthToADFFrame(TangoPointCloudData pointCloud, float[] point) {
-		TangoSupport.TangoMatrixTransformData transform =
-				TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
-						TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-						TangoPoseData.COORDINATE_FRAME_CAMERA_COLOR,
-						TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-						TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-						TangoSupport.ROTATION_IGNORED);
-		return frameTransform(pointCloud.timestamp, point, transform);
-	}
-
-	private float[] frameTransform(double timestamp, float[] point, TangoSupport.TangoMatrixTransformData transform) {
-		if (transform.statusCode == TangoPoseData.POSE_VALID) {
-			float[] depthPoint = new float[]{point[0], point[1], point[2], 1};
-			float[] openGlPoint = new float[4];
-			Matrix.multiplyMV(openGlPoint, 0, transform.matrix, 0, depthPoint, 0);
-			return openGlPoint;
-		} else {
-			Log.w(TAG, "Could not get depth camera transform at time " + timestamp);
-		}
-		return null;
-	}
 
 	private void setDisplayRotation() {
 		Display display = getWindowManager().getDefaultDisplay();
@@ -636,6 +586,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	@Override
 	public void onEnvironmentSelected(EnvironmentDAO environment) {
 		loadEnvironment(environment.getId());
+	}
+
+	@Override
+	public void onMapUpdate(QuadTree data) {
+		this.newMapData = data;
+		this.newQuadtree = true;
 	}
 
 	private class mTangoUpdateListener extends Tango.TangoUpdateCallback {
@@ -665,8 +621,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				hideProgressBar();
 				Log.d(TAG, "New ADF to Device Pose");
 				// Process new ADF to device pose data.
-			}
-			else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
+			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE) {
 				localized = true;
 				hideProgressBar();
@@ -681,101 +636,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				tangoUx.updatePointCloud(pointCloud);
 			}
 			mPointCloudManager.updatePointCloud(pointCloud);
-			newPointcloud = true;
-
-			if (floorLevel != -1000.0f) {
-
-				final double currentTimeStamp = pointCloud.timestamp;
-				final double pointCloudFrameDelta =
-						(currentTimeStamp - mPointCloudPreviousTimeStamp) * 1000;
-				mPointCloudPreviousTimeStamp = currentTimeStamp;
-
-				mPointCloudTimeToNextUpdate -= pointCloudFrameDelta;
-
-
-				if (mPointCloudTimeToNextUpdate < 0.0 && capturePointcloud) {
-					if (calculationTimes.getN() > 20) {
-						mPointCloudTimeToNextUpdate = Math.max(UPDATE_INTERVAL_MS, calculationTimes.getMean());
-					} else {
-						mPointCloudTimeToNextUpdate = UPDATE_INTERVAL_MS;
-					}
-
-					if (pointCloud.points != null) {
-						AsyncTask<TangoPointCloudData, Integer, List<List<float[]>>> pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<List<float[]>>>() {
-
-							public long start;
-
-							@Override
-							protected List<List<float[]>> doInBackground(TangoPointCloudData... params) {
-								start = System.currentTimeMillis();
-								TangoSupport.TangoMatrixTransformData transform =
-										TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
-												TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-												TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-												TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-												TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-												TangoSupport.ROTATION_IGNORED);
-								FloatBuffer points = pointCloud.points;
-								float[] depthFrame;
-								List<List<float[]>> result = new ArrayList<>();
-								List<float[]> floor = new LinkedList<>();
-								List<float[]> obstacles = new LinkedList<>();
-								int i = POINTCLOUD_SAMPLE_RATE;
-								while (points.hasRemaining()) {
-									depthFrame = new float[]{points.get(), points.get(), points.get()};
-									float C = points.get();
-									if (i == 0) {
-//                                            float[] worldFrame = depthToADFFrame(pointCloud, depthFrame);
-//                                            float[] worldFrame = TangoSupport.transformPoint(transform.matrix,depthFrame);
-										float[] worldFrame = frameTransform(currentTimeStamp, depthFrame, transform);
-										double d = Math.abs(floorLevel - worldFrame[1]);
-										if (d < ACCURACY) {
-											floor.add(worldFrame);
-										} else if (d > OBSTACLE_HEIGHT) {
-											obstacles.add(worldFrame);
-										}
-										i = POINTCLOUD_SAMPLE_RATE;
-									} else {
-										i--;
-									}
-								}
-								Log.d(TAG, "found floorpoints: " + result.size());
-								result.add(0, floor);
-								result.add(1, obstacles);
-								return result;
-							}
-
-							@Override
-							protected void onPostExecute(List<List<float[]>> floats) {
-								super.onPostExecute(floats);
-								if (floats != null) {
-									synchronized (floorPoints) {
-//                                        floorPoints.add(new Vector3(x,z,-y));
-										for (float[] f : floats.get(0)) {
-											floorPoints.add(new Vector3(f[0], f[1], f[2]));
-										}
-										for (float[] f : floats.get(1)) {
-											obstaclePoints.add(new Vector3(f[0], f[1], f[2]));
-										}
-//                                        renderer.addToFloorPlan(floorPoints);
-										newPoints = true;
-									}
-								}
-								long calcTime = System.currentTimeMillis() - start;
-								calculationTimes.addValue(calcTime);
-								Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d", calculationTimes.getMean(), calcTime));
-//                                Log.d(TAG, String.format("New average floor level %1$.3f, Stats: %2$s",floorLevel.getMean(),floorLevel.toString()));
-							}
-						};
-						pointCloudTask.execute(pointCloud);
-					}
-				}
-
-
+			if(!mapper.isRunning()){
+				mapper.mapPointCloud(pointCloud);
 			}
-
 		}
 	}
+
+
 
 	private boolean hasCameraPermission() {
 		return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
@@ -817,7 +684,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		@Override
 		public void onClick(View v) {
 			capturePointcloud = false;
-			final double finalFloorLevel = floorLevel;
+			final double finalFloorLevel = mapper.getFloorLevel();
 			new AsyncTask<Object, Integer, Long>() {
 				@Override
 				protected void onPreExecute() {

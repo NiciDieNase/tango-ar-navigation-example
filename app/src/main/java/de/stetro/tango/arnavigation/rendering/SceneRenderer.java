@@ -75,6 +75,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void setQuadTree(QuadTree data){
         this.data = data;
+        floorPlan.setData(data);
     }
 
     @Override
@@ -292,5 +293,9 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public double getFloorLevel(){
         return floorPlan.getFloorLevel();
+    }
+
+    public void updateMapData(QuadTree mapData){
+        data = mapData;
     }
 }

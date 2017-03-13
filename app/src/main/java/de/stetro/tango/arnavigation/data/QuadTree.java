@@ -2,9 +2,11 @@ package de.stetro.tango.arnavigation.data;
 
 
 import org.rajawali3d.math.vector.Vector2;
+import org.rajawali3d.math.vector.Vector3;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class QuadTree implements Serializable, Cloneable{
@@ -41,6 +43,7 @@ public class QuadTree implements Serializable, Cloneable{
         QuadTree clone = new QuadTree(getVector2(), range, depth);
         clone.setFilled(filled);
         clone.setObstacle(obstacle);
+        clone.setListener(listener);
         QuadTree[] cloneChildren = new QuadTree[4];
         for(int i=0;i<4;i++){
             if(children[i] != null){
@@ -140,6 +143,14 @@ public class QuadTree implements Serializable, Cloneable{
         return false;
     }
 
+    public boolean setFilledInvalidate3(List<Vector3> points){
+        List<Vector2> result = new LinkedList<>();
+        for(Vector3 p : points){
+            result.add(new Vector2(p.x,p.z));
+        }
+        return setFilledInvalidate(result);
+    }
+
     public boolean setFilledInvalidate(List<Vector2> points){
         boolean updateListener = false;
         for(Vector2 v: points){
@@ -170,6 +181,12 @@ public class QuadTree implements Serializable, Cloneable{
             }
             children[index].setFilled(point);
             this.setFilledIfChildrenAreFilled();
+        }
+    }
+
+    public void setObstacle(List<Vector3> points){
+        for(Vector3 p : points){
+            setObstacle(new Vector2(p.x,p.z));
         }
     }
 

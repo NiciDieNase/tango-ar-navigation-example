@@ -1,0 +1,164 @@
+package de.stetro.tango.arnavigation.data;
+
+import android.os.AsyncTask;
+import android.util.Log;
+
+import com.google.atap.tangoservice.TangoPointCloudData;
+import com.google.atap.tangoservice.TangoPoseData;
+import com.projecttango.tangosupport.TangoSupport;
+
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.rajawali3d.math.vector.Vector2;
+import org.rajawali3d.math.vector.Vector3;
+
+import java.nio.FloatBuffer;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+import de.stetro.tango.arnavigation.ui.util.MappingUtils;
+
+/**
+ * Created by felix on 13/03/17.
+ */
+
+public class EnvironmentMapper {
+
+	public static final int QUAD_TREE_START = -60;
+	public static final int QUAD_TREE_RANGE = 120;
+	public static final int POINTCLOUD_SAMPLE_RATE = 5;
+	private static final double ACCURACY = 0.15;
+	private static final double OBSTACLE_HEIGHT = 0.4;
+	private static final String TAG = EnvironmentMapper.class.getSimpleName();
+
+	QuadTree map;
+	private boolean running = false;
+	private double floorLevel = -1000.0f;
+	private List<Vector3> floorPoints = new LinkedList<>();
+	private List<Vector3> obstaclePoints = new LinkedList<>();
+	private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
+	private OnMapUpdateListener listener;
+
+	public interface OnMapUpdateListener{
+		public void onMapUpdate(QuadTree data);
+	}
+
+	public EnvironmentMapper(){
+		map = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
+	}
+
+	public EnvironmentMapper(QuadTree map) {
+		this.map = map;
+	}
+
+	public void mapPointCloud(final TangoPointCloudData pointCloud) {
+		if (this.getFloorLevel() != -1000.0f) {
+
+			final double currentTimeStamp = pointCloud.timestamp;
+
+				if (pointCloud.points != null) {
+					AsyncTask<TangoPointCloudData, Integer, List<List<float[]>>> pointCloudTask = new AsyncTask<TangoPointCloudData, Integer, List<List<float[]>>>() {
+
+						public long start;
+
+						@Override
+						protected void onPreExecute() {
+							running = true;
+						}
+
+						@Override
+						protected List<List<float[]>> doInBackground(TangoPointCloudData... params) {
+							start = System.currentTimeMillis();
+							TangoSupport.TangoMatrixTransformData transform =
+									TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
+											TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+											TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
+											TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+											TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+											TangoSupport.ROTATION_IGNORED);
+							FloatBuffer points = pointCloud.points;
+							float[] depthFrame;
+							List<List<float[]>> result = new ArrayList<>();
+							List<float[]> floor = new LinkedList<>();
+							List<float[]> obstacles = new LinkedList<>();
+							int i = POINTCLOUD_SAMPLE_RATE;
+							while (points.hasRemaining()) {
+								depthFrame = new float[]{points.get(), points.get(), points.get()};
+								float C = points.get();
+								if (i == 0) {
+									float[] worldFrame = MappingUtils.frameTransform(currentTimeStamp, depthFrame, transform);
+									double d = Math.abs(getFloorLevel() - worldFrame[1]);
+									if (d < ACCURACY) {
+										floor.add(worldFrame);
+									} else if (d > OBSTACLE_HEIGHT) {
+										obstacles.add(worldFrame);
+									}
+									i = POINTCLOUD_SAMPLE_RATE;
+								} else {
+									i--;
+								}
+							}
+							Log.d(TAG, "found floorpoints: " + result.size());
+							result.add(0, floor);
+							result.add(1, obstacles);
+							return result;
+						}
+
+						@Override
+						protected void onPostExecute(List<List<float[]>> floats) {
+							super.onPostExecute(floats);
+							if (floats != null) {
+								synchronized (floorPoints) {
+									for (float[] f : floats.get(0)) {
+										floorPoints.add(new Vector3(f[0], f[1], f[2]));
+									}
+									for (float[] f : floats.get(1)) {
+										obstaclePoints.add(new Vector3(f[0], f[1], f[2]));
+									}
+								}
+							}
+							running = false;
+							long calcTime = System.currentTimeMillis() - start;
+							calculationTimes.addValue(calcTime);
+							Log.d(TAG, String.format("Mean Pointcloud calculations time: %1$.1f last: %2$d", calculationTimes.getMean(), calcTime));
+
+							map.setObstacle(obstaclePoints);
+							map.setFilledInvalidate3(floorPoints);
+							map.clearObstacleCount();
+
+
+							if(listener != null){
+								// TODO return new Quadtree
+								listener.onMapUpdate(map.clone());
+							}
+						}
+					};
+					pointCloudTask.execute(pointCloud);
+				}
+			}
+		}
+
+	public boolean isRunning() {
+		return running;
+	}
+
+	public void setRunning(boolean running) {
+		this.running = running;
+	}
+
+	public QuadTree getMap() {
+		return map;
+	}
+
+	public void setMap(QuadTree map) {
+		this.map = map;
+	}
+
+	public double getFloorLevel() {
+		return floorLevel;
+	}
+
+	public void setFloorLevel(double floorLevel) {
+		this.floorLevel = floorLevel;
+	}
+}

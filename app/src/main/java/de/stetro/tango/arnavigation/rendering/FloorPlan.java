@@ -7,7 +7,6 @@ import org.rajawali3d.math.vector.Vector2;
 import org.rajawali3d.math.vector.Vector3;
 
 import java.nio.FloatBuffer;
-import java.util.LinkedList;
 import java.util.List;
 
 import de.stetro.tango.arnavigation.data.QuadTree;
@@ -32,32 +31,20 @@ public class FloorPlan extends Object3D {
             this.rebuildPoints();
     }
 
-    public void bulkAdd(List<List<Vector3>> positions){
-        // TODO this would be the point to handle obstacles
-        addObstacle(positions.get(1));
-        addPoints(positions.get(0));
-        // TODO filter obstacles
+    public void bulkAdd(List<Vector3> floorPoints, List<Vector3> obstaclePoints){
+        data.setObstacle(obstaclePoints);
+        data.setFilledInvalidate3(floorPoints);
         rebuildPoints();
         data.clearObstacleCount();
+    }
+
+    public void bulkAdd(List<List<Vector3>> positions){
+        bulkAdd(positions.get(0),positions.get(1));
     }
 
     protected boolean addPoint(Vector3 point) {
         Vector2 p = new Vector2(point.x, point.z);
         return data.setFilledInvalidate(p);
-    }
-
-    protected boolean addPoints(List<Vector3> points){
-        List<Vector2> result = new LinkedList<>();
-        for(Vector3 p : points){
-            result.add(new Vector2(p.x,p.z));
-        }
-        return data.setFilledInvalidate(result);
-    }
-
-    private void addObstacle(List<Vector3> position) {
-        for(Vector3 p : position){
-            data.setObstacle(new Vector2(p.x,p.z));
-        }
     }
 
     public void rebuildPoints() {
@@ -117,5 +104,10 @@ public class FloorPlan extends Object3D {
     public void forceAdd(Vector3 v){
         data.forceFilled(new Vector2(v.x,v.z));
         this.rebuildPoints();
+    }
+
+    public void setData(QuadTree data) {
+        this.data = data;
+        rebuildPoints();
     }
 }
