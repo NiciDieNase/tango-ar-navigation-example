@@ -114,6 +114,11 @@ public class SceneRenderer extends RajawaliRenderer {
         mPointCloud = new PointCloud(MAX_NUMBER_OF_POINTS, 4);
         getCurrentScene().addChild(mPointCloud);
         mPointCloud.setVisible(renderPointCloud);
+
+        TrackPoint = new Sphere(0.05f,20,20);
+        TrackPoint.setVisible(false);
+        TrackPoint.setMaterial(tangoCameraMaterial);
+        getCurrentScene().addChild(TrackPoint);
     }
 
     /**
@@ -126,8 +131,8 @@ public class SceneRenderer extends RajawaliRenderer {
         Pose cameraPose = ScenePoseCalculator.toOpenGlCameraPose(devicePose, extrinsics);
         getCurrentCamera().setRotation(cameraPose.getOrientation());
         getCurrentCamera().setPosition(cameraPose.getPosition());
-//        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
-        floorPlan.forceAdd(cameraPose.getPosition());
+        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
+//        floorPlan.forceAdd(cameraPose.getPosition());
     }
 
     /**
@@ -277,6 +282,10 @@ public class SceneRenderer extends RajawaliRenderer {
         this.renderFloorPlan = show;
         floorPlan.setVisible(renderFloorPlan);
         return renderFloorPlan;
+    }
+
+    public void renderSphere(boolean render){
+        this.TrackPoint.setVisible(render);
     }
 
     public boolean getRenderFloorPlan(){ return renderFloorPlan; };

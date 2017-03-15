@@ -102,7 +102,7 @@ public class FloorPlan extends Object3D {
     }
 
     public void forceAdd(Vector3 v){
-        data.forceFilled(new Vector2(v.x,v.z));
+        data.forceFilled(new Vector2(v.x,v.z),true);
         this.rebuildPoints();
     }
 

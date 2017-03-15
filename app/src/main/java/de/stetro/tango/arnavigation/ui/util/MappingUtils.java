@@ -78,13 +78,24 @@ public class MappingUtils {
 		point = TangoSupport.getDepthAtPointNearestNeighbor(pointCloud,
 				colorTdepthPose.translation, colorTdepthPose.rotation,
 				u, v, mDisplayRotation, identityTranslation, identityRotation);
+//		point = TangoSupport.getDepthAtPointBilateral(pointCloud,colorTdepthPose.translation,
+//				colorTdepthPose.rotation,imageBuffer,u,v,mDisplayRotation,identityTranslation,
+//				identityRotation);
 		if (point == null) {
 			return null;
 		}
 
 		// Get the transform from depth camera to OpenGL world at the timestamp of the cloud.
 		float[] openGlPoint = colorToADFFrame(pointCloud, point);
-		if (openGlPoint != null) return openGlPoint;
-		return null;
+		return openGlPoint;
+	}
+
+	public static TangoSupport.TangoMatrixTransformData getTransform(double timestamp){
+		return TangoSupport.getMatrixTransformAtTime(timestamp,
+				TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+				TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
+				TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+				TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+				TangoSupport.ROTATION_IGNORED);
 	}
 }

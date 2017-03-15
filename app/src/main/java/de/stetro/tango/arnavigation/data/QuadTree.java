@@ -98,11 +98,11 @@ public class QuadTree implements Serializable, Cloneable{
 
     private void getFilledEdgePointsAsPolygon(ArrayList<Vector2> list) {
         if (filled || (depth == 0 && filled) ) {
-            list.add(new Vector2(x, y));
+            list.add(new Vector2(x                       , y));
             list.add(new Vector2(x + range - PLANE_SPACER, y));
-            list.add(new Vector2(x, y + range - PLANE_SPACER));
+            list.add(new Vector2(x                       , y + range - PLANE_SPACER));
 
-            list.add(new Vector2(x, y + range - PLANE_SPACER));
+            list.add(new Vector2(x                       , y + range - PLANE_SPACER));
             list.add(new Vector2(x + range - PLANE_SPACER, y));
             list.add(new Vector2(x + range - PLANE_SPACER, y + range - PLANE_SPACER));
         } else {
@@ -141,6 +141,14 @@ public class QuadTree implements Serializable, Cloneable{
             return true;
         }
         return false;
+    }
+
+    public boolean forceFilledInvalidate(Vector2 point, boolean filled){
+        forceFilled(point,filled);
+        if(listener != null){
+            listener.OnQuadTreeUpdate();
+        }
+        return isFilled(point);
     }
 
     public boolean setFilledInvalidate3(List<Vector3> points){
@@ -183,6 +191,18 @@ public class QuadTree implements Serializable, Cloneable{
             }
             children[index].setFilled(point);
             this.setFilledIfChildrenAreFilled();
+        }
+    }
+
+    public QuadTree getNodeAt(Vector2 v2) {
+        if(depth == 0){
+            return this;
+        } else {
+            int index = getChildIndex(v2);
+            if(children[index] == null){
+                children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
+            }
+            return children[index].getNodeAt(v2);
         }
     }
 
@@ -296,19 +316,20 @@ public class QuadTree implements Serializable, Cloneable{
         return a;
     }
 
-    public void forceFilled(Vector2 v) {
+    public void forceFilled(Vector2 v, boolean filled) {
         if(depth == 0){
-            filled = true;
+            this.filled = filled;
             obstacle = true;
-            if(listener != null){
-                listener.OnQuadTreeUpdate();
-            }
         } else {
+            if(!filled){
+                this.filled = false;
+            }
             int index = getChildIndex(v);
             if (children[index] == null) {
                 children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
             }
-            children[index].forceFilled(v);
+            children[index].forceFilled(v, filled);
+            this.setFilledIfChildrenAreFilled();
         }
     }
 

@@ -44,6 +44,8 @@ import com.projecttango.tangosupport.TangoPointCloudManager;
 import com.projecttango.tangosupport.TangoSupport;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.rajawali3d.math.vector.Vector2;
+import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
 import java.io.FileInputStream;
@@ -70,6 +72,8 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener,
 		EnvironmentMapper.OnMapUpdateListener {
+
+	public enum ActivityState {mapping, editing, placepoi, localizing, navigating, undefined}
 
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
@@ -129,6 +133,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private boolean newQuadtree = false;
 	private QuadTree newMapData;
 
+	private ActivityState currentState = ActivityState.undefined;
 
 	private static DeviceExtrinsics setupExtrinsics(Tango tango) {
 		// Create camera to IMU transform.
@@ -165,9 +170,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				adfuuid = environment.getADFUUID();
 				tree = loadFromFile(environment.getADFUUID());
 				if (tree != null) {
-					mapper = new EnvironmentMapper(tree);
-					mapper.setFloorLevel(environment.getFloorLevel());
+//					mapper = new EnvironmentMapper(tree);
+//					mapper.setFloorLevel(environment.getFloorLevel());
 					renderer = new SceneRenderer(this, tree);
+					currentState = ActivityState.localizing;
+				} else {
+					Log.d(TAG,"Failed to load map");
 				}
 				capturePointcloud = false;
 				fabPause.hide();
@@ -178,6 +186,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		if(mapper == null){
 			mapper = new EnvironmentMapper();
 			renderer = new SceneRenderer(this);
+			currentState = ActivityState.mapping;
 		}
 		mapper.setListener(this);
 
@@ -195,8 +204,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				capturePointcloud = !capturePointcloud;
 				if (capturePointcloud) {
 					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_pause));
+					currentState = ActivityState.mapping;
+					renderer.renderSphere(false);
 				} else {
 					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
+					currentState = ActivityState.editing;
+					renderer.renderSphere(true);
 				}
 			}
 		});
@@ -427,16 +440,31 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			// Calculate click location in u,v (0;1) coordinates.
 			float u = motionEvent.getX() / view.getWidth();
 			float v = motionEvent.getY() / view.getHeight();
+//			float v = view.getHeight()/motionEvent.getY();
 
 			try {
 				synchronized (this) {
-					float[] touchPosition = getDepthAtTouchPosition(mCurrentImageBuffer, mDisplayRotation, u, v, mPointCloudManager.getLatestPointCloud());
+					float[] touchPosition = getDepthAtTouchPosition(mCurrentImageBuffer, mDisplayRotation, u,v , mPointCloudManager.getLatestPointCloud());
+
 					if (touchPosition != null) {
-						mapper.setFloorLevel(touchPosition[1]);
-						Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
-						Log.d(TAG, "Floor level: " + mapper.getFloorLevel());
-						renderer.setFloorLevel(mapper.getFloorLevel());
-						renderer.renderVirtualObjects(true);
+						switch (currentState){
+							case mapping:
+								mapper.setFloorLevel(touchPosition[1]);
+								Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
+								Log.d(TAG, "Floor level: " + mapper.getFloorLevel());
+								renderer.setFloorLevel(mapper.getFloorLevel());
+								renderer.renderVirtualObjects(true);
+								break;
+							case editing:
+								// toggle filled status of quadrant
+								Snackbar.make(view, "This should toggle a quadrant", Snackbar.LENGTH_SHORT).show();
+								mapper.toggle(new Vector2(touchPosition[0],touchPosition[2]));
+								renderer.setTrackPosition(new Vector3(touchPosition[0],touchPosition[1],touchPosition[2]));
+								break;
+							case placepoi:
+								// place POI
+								break;
+						}
 					}
 				}
 
@@ -640,7 +668,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 					newPointcloud = false;
 				}
 				if (newQuadtree) {
-					renderer.setFloorLevel(mapper.getFloorLevel());
+					if(mapper != null){
+						renderer.setFloorLevel(mapper.getFloorLevel());
+					}
 					mapView.setFloorPlanData(newMapData);
 					renderer.setQuadTree(newMapData);
 

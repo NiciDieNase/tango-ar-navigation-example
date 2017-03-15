@@ -4,7 +4,6 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import com.google.atap.tangoservice.TangoPointCloudData;
-import com.google.atap.tangoservice.TangoPoseData;
 import com.projecttango.tangosupport.TangoSupport;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
@@ -68,13 +67,7 @@ public class EnvironmentMapper {
 						@Override
 						protected QuadTree doInBackground(TangoPointCloudData... params) {
 							start = System.currentTimeMillis();
-							TangoSupport.TangoMatrixTransformData transform =
-									TangoSupport.getMatrixTransformAtTime(currentTimeStamp,
-											TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-											TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-											TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-											TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-											TangoSupport.ROTATION_IGNORED);
+							TangoSupport.TangoMatrixTransformData transform = MappingUtils.getTransform(currentTimeStamp);
 							FloatBuffer points = pointCloud.points;
 							float[] depthFrame;
 							List<List<float[]>> result = new ArrayList<>();
@@ -146,4 +139,17 @@ public class EnvironmentMapper {
 		this.listener = listener;
 	}
 
+	public void toggle(Vector2 v2){
+		QuadTree node = map.getNodeAt(v2);
+		map.forceFilledInvalidate(v2,!node.isFilled());
+//		node.setObstacle(true);
+//		node.setFilled(!node.isFilled());
+//		if(map.listener != null){
+//			map.listener.OnQuadTreeUpdate();
+//		}
+//		node.setFilledInvalidate(v2);
+		if(listener != null){
+			listener.onMapUpdate(map.clone());
+		}
+	}
 }
