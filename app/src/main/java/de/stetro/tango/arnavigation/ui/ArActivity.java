@@ -637,61 +637,66 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		@Override
 		public void onPreFrame(long sceneTime, double deltaTime) {
 			synchronized (ArActivity.this) {
-				if (!tangoIsConnected.get()) {
-					return;
-				}
-				if (!renderer.isSceneCameraConfigured()) {
-					renderer.setProjectionMatrix(intrinsics);
-				}
-				if (connectedTextureId != renderer.getTextureId()) {
-					tango.connectTextureId(ACTIVE_CAMERA_INTRINSICS, renderer.getTextureId());
-					connectedTextureId = renderer.getTextureId();
-				}
-				if (tangoFrameIsAvailable.compareAndSet(true, false)) {
-					rgbFrameTimestamp = tango.updateTexture(ACTIVE_CAMERA_INTRINSICS);
-				}
-				if (rgbFrameTimestamp > cameraPoseTimestamp) {
-					TangoPoseData currentPose = getCurrentPose();
-					if (currentPose != null && currentPose.statusCode == TangoPoseData.POSE_VALID) {
-						renderer.updateRenderCameraPose(currentPose, extrinsics);
-						cameraPoseTimestamp = currentPose.timestamp;
+				try {
+
+					if (!tangoIsConnected.get()) {
+						return;
 					}
-				}
-				if (newPointcloud) {
-					// Update point cloud data.
-					TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
-					if (pointCloud != null) {
-						// Calculate the camera color pose at the camera frame update time in
-						// OpenGL engine.
-						TangoSupport.TangoMatrixTransformData transform =
-								TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
-										TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
-										TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
-										TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
-										TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
-										TangoSupport.ROTATION_IGNORED);
-						if (transform.statusCode == TangoPoseData.POSE_VALID) {
-							renderer.updatePointCloud(pointCloud, transform.matrix);
+					if (!renderer.isSceneCameraConfigured()) {
+						renderer.setProjectionMatrix(intrinsics);
+					}
+					if (connectedTextureId != renderer.getTextureId()) {
+						tango.connectTextureId(ACTIVE_CAMERA_INTRINSICS, renderer.getTextureId());
+						connectedTextureId = renderer.getTextureId();
+					}
+					if (tangoFrameIsAvailable.compareAndSet(true, false)) {
+						rgbFrameTimestamp = tango.updateTexture(ACTIVE_CAMERA_INTRINSICS);
+					}
+					if (rgbFrameTimestamp > cameraPoseTimestamp) {
+						TangoPoseData currentPose = getCurrentPose();
+						if (currentPose != null && currentPose.statusCode == TangoPoseData.POSE_VALID) {
+							renderer.updateRenderCameraPose(currentPose, extrinsics);
+							cameraPoseTimestamp = currentPose.timestamp;
 						}
 					}
-					newPointcloud = false;
-				}
-				if (newQuadtree) {
-					if(mapper != null){
-						renderer.setFloorLevel(mapper.getFloorLevel());
+					if (newPointcloud) {
+						// Update point cloud data.
+						TangoPointCloudData pointCloud = mPointCloudManager.getLatestPointCloud();
+						if (pointCloud != null) {
+							// Calculate the camera color pose at the camera frame update time in
+							// OpenGL engine.
+							TangoSupport.TangoMatrixTransformData transform =
+									TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
+											TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+											TangoPoseData.COORDINATE_FRAME_CAMERA_DEPTH,
+											TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+											TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+											TangoSupport.ROTATION_IGNORED);
+							if (transform.statusCode == TangoPoseData.POSE_VALID) {
+								renderer.updatePointCloud(pointCloud, transform.matrix);
+							}
+						}
+						newPointcloud = false;
 					}
-					mapView.setFloorPlanData(newMapData);
-					renderer.setQuadTree(newMapData);
+					if (newQuadtree) {
+						if(mapper != null){
+							renderer.setFloorLevel(mapper.getFloorLevel());
+						}
+						mapView.setFloorPlanData(newMapData);
+						renderer.setQuadTree(newMapData);
 
-					newQuadtree = false;
-				}
-				if (localized) {
-					renderer.renderFloorPlan(true);
-					localized = false;
-				}
-				if(togglePointcloud){
-					renderer.showPointCloud(!renderer.getRenderPointCloud());
-					togglePointcloud = false;
+						newQuadtree = false;
+					}
+					if (localized) {
+						renderer.renderFloorPlan(true);
+						localized = false;
+					}
+					if(togglePointcloud){
+						renderer.showPointCloud(!renderer.getRenderPointCloud());
+						togglePointcloud = false;
+					}
+				} catch (TangoInvalidException e){
+					Log.d(TAG,e.getMessage(),e);
 				}
 			}
 		}
