@@ -13,4 +13,5 @@
     <string name="toggle_pointcloud">Toggle Pointcloud</string>
     <string name="load_environment">Load Environment</string>
     <string name="toogle_floor_plan">Toogle Floor Plan</string>
+    <string name="place_poi">Tap where to place POI</string>
 </resources>

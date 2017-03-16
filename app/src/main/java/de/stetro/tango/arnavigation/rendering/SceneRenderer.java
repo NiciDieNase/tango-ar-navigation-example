@@ -56,12 +56,15 @@ public class SceneRenderer extends RajawaliRenderer {
     private List<Cube> pathCubes = new ArrayList<>();
     private boolean fillPath = false;
     private Material blue;
+    private Material green;
     private boolean renderVirtualObjects;
     private boolean renderPointCloud = true;
     private PointCloud mPointCloud;
     private Sphere TrackPoint;
     private Line3D line;
     private boolean renderFloorPlan = false;
+    private Sphere PointOfInterest;
+    private boolean renderPOI;
 
     public SceneRenderer(Context context) {
         super(context);
@@ -107,6 +110,9 @@ public class SceneRenderer extends RajawaliRenderer {
         blue = new Material();
         blue.setColor(Color.BLUE);
 
+        green = new Material();
+        green.setColor(Color.BLUE);
+
         floorPlan = new FloorPlan(data);
         getCurrentScene().addChild(floorPlan);
         floorPlan.setVisible(renderFloorPlan);
@@ -119,6 +125,11 @@ public class SceneRenderer extends RajawaliRenderer {
         TrackPoint.setVisible(false);
         TrackPoint.setMaterial(tangoCameraMaterial);
         getCurrentScene().addChild(TrackPoint);
+
+        PointOfInterest = new Sphere(.5f, 20,20);
+        PointOfInterest.setVisible(false);
+        PointOfInterest.setMaterial(blue);
+        getCurrentScene().addChild(PointOfInterest);
     }
 
     /**
@@ -300,5 +311,14 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void updateMapData(QuadTree mapData){
         data = mapData;
+    }
+
+    public void showPOI(Vector3 position){
+        PointOfInterest.setPosition(position);
+        PointOfInterest.setVisible(true);
+    }
+
+    public void hidePOI(){
+        PointOfInterest.setVisible(false);
     }
 }

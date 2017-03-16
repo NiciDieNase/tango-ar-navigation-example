@@ -64,6 +64,7 @@ import de.stetro.tango.arnavigation.R;
 import de.stetro.tango.arnavigation.data.EnvironmentMapper;
 import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
+import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
 import de.stetro.tango.arnavigation.rendering.SceneRenderer;
 import de.stetro.tango.arnavigation.ui.SelectEnvironmentFragment.EnvironmentSelectionListener;
 import de.stetro.tango.arnavigation.ui.util.MappingUtils;
@@ -75,7 +76,9 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener,
 		EnvironmentMapper.OnMapUpdateListener {
 
-	public enum ActivityState {mapping, editing, placepoi, localizing, navigating, undefined}
+	private long environment_id;
+
+	public enum ActivityState {mapping, editing, localizing, navigating, undefined}
 
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
@@ -90,6 +93,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
+	public static final TangoCoordinateFramePair ADF_T_SOS_FRAME_PAIR =
+			new TangoCoordinateFramePair(
+					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE);
 
 	// This changes the Camera Texture and Intrinsics
 	protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
@@ -120,6 +127,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	@Bind(R.id.map_view) MapView mapView;
 	@Bind(R.id.fab_pause) FloatingActionButton fabPause;
 	@Bind(R.id.fab_save) FloatingActionButton fabSave;
+	@Bind(R.id.fab_addpoi) FloatingActionButton fabAddPoi;
 	@Bind(R.id.progressSpinner) ProgressBar progressBar;
 
 	private int mDisplayRotation;
@@ -166,7 +174,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		Bundle extras = getIntent().getExtras();
 
 		if (extras != null) {
-			long environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
+			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
 				EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
 				adfuuid = environment.getADFUUID();
@@ -211,7 +219,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				} else {
 					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
 					currentState = ActivityState.editing;
-					renderer.renderSphere(true);
+//					renderer.renderSphere(true);
 				}
 			}
 		});
@@ -220,6 +228,18 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				Tango.TANGO_INTENT_ACTIVITYCODE);
 
 		fabSave.setOnClickListener(new OnSaveButtonClickListener());
+
+		fabAddPoi.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				TangoPoseData poseData = tango.getPoseAtTime(0.0, ADF_T_DEVICE_FRAME_PAIR);
+				float[] p = poseData.getTranslationAsFloats();
+				// TODO get Name and description
+				String name = "Point of interest";
+				String description = "Very interesting";
+				addPOI(p, name, description);
+			}
+		});
 
 		DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
 		if (displayManager != null) {
@@ -242,6 +262,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		}
 
 		calculationTimes.setWindowSize(100);
+	}
+
+	private void addPOI(float[] p, String name, String description) {
+		PoiDAO poi = new PoiDAO(environment_id, name, description, p[0], p[1], p[2]);
+		poi.save();
 	}
 
 	private void loadEnvironment(Long id) {
@@ -375,6 +400,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<>();
 						framePairs.add(SOS_T_DEVICE_FRAME_PAIR);
 						framePairs.add(DEVICE_T_PREVIOUS_FRAME_PAIR);
+						framePairs.add(ADF_T_DEVICE_FRAME_PAIR);
+						framePairs.add(ADF_T_SOS_FRAME_PAIR);
 						tango.connectListener(framePairs, new mTangoUpdateListener());
 
 						tango.experimentalConnectOnFrameListener(TangoCameraIntrinsics.TANGO_CAMERA_COLOR,
@@ -420,10 +447,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		TangoConfig config = tango.getConfig(TangoConfig.CONFIG_TYPE_DEFAULT);
 		config.putBoolean(TangoConfig.KEY_BOOLEAN_LOWLATENCYIMUINTEGRATION, true);
 		config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
-		config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
 		config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
 		if (adfuuid.equals("")) {
 			config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
+			config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
 			config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
 		} else {
 			config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, false);
@@ -467,9 +494,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 								Snackbar.make(view, "This should toggle a quadrant", Snackbar.LENGTH_SHORT).show();
 								mapper.toggle(new Vector2(touchPosition[0],touchPosition[2]));
 								renderer.setTrackPosition(new Vector3(touchPosition[0],touchPosition[1],touchPosition[2]));
-								break;
-							case placepoi:
-								// place POI
 								break;
 						}
 					}
@@ -560,16 +584,17 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			}
 			if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE) {
-				localized = true;
-				hideProgressBar();
-				Log.d(TAG, "New ADF to Device Pose");
-				// Process new ADF to device pose data.
+				// Handle new ADF Pose
 			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE) {
 				localized = true;
-				hideProgressBar();
-				Log.d(TAG, "new localization");
-				// Process new localization.
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						hideProgressBar();
+					}
+				});
+				renderer.renderVirtualObjects(true);
 			}
 		}
 
