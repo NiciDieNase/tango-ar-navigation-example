@@ -440,16 +440,14 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	@Override
 	public boolean onTouch(View view, MotionEvent motionEvent) {
 		if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-			// Calculate click location in u,v (0;1) coordinates.
 			float u,v;
 			if(MappingUtils.getDeviceDefaultOrientation(this) == Configuration.ORIENTATION_LANDSCAPE){
 				u = motionEvent.getX() / view.getWidth();
 				v = motionEvent.getY() / view.getHeight();
 			} else {
-				v = motionEvent.getX() / view.getWidth();
 				u = 1.0f - motionEvent.getY() / view.getHeight();
+				v = motionEvent.getX() / view.getWidth();
 			}
-//			float v = view.getHeight()/motionEvent.getY();
 
 			try {
 				synchronized (this) {
