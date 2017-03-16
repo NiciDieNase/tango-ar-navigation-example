@@ -19,7 +19,6 @@ public class QuadTree implements Serializable, Cloneable{
     private double x;
     private double y;
 
-    private final double halfRange;
     private final int depth;
     private final double range;
 
@@ -34,7 +33,6 @@ public class QuadTree implements Serializable, Cloneable{
         this.position = position;
         this.x = position.getX();
         this.y = position.getY();
-        this.halfRange = range / 2.0;
         this.depth = depth;
         this.range = range;
     }
@@ -98,13 +96,13 @@ public class QuadTree implements Serializable, Cloneable{
 
     private void getFilledEdgePointsAsPolygon(ArrayList<Vector2> list) {
         if (filled || (depth == 0 && filled) ) {
-            list.add(new Vector2(x                       , y));
-            list.add(new Vector2(x + range - PLANE_SPACER, y));
-            list.add(new Vector2(x                       , y + range - PLANE_SPACER));
+            list.add(new Vector2(x - range / 2.0                       , y - range / 2.0));
+            list.add(new Vector2(x + range - PLANE_SPACER - range / 2.0, y - range / 2.0));
+            list.add(new Vector2(x - range / 2.0                       , y + range - PLANE_SPACER- range / 2.0));
 
-            list.add(new Vector2(x                       , y + range - PLANE_SPACER));
-            list.add(new Vector2(x + range - PLANE_SPACER, y));
-            list.add(new Vector2(x + range - PLANE_SPACER, y + range - PLANE_SPACER));
+            list.add(new Vector2(x - range / 2.0                       , y + range - PLANE_SPACER- range / 2.0));
+            list.add(new Vector2(x + range - PLANE_SPACER- range / 2.0 , y- range / 2.0));
+            list.add(new Vector2(x + range - PLANE_SPACER- range / 2.0 , y + range - PLANE_SPACER- range / 2.0));
         } else {
             for (QuadTree child : children) {
                 if (child != null) {
@@ -187,7 +185,7 @@ public class QuadTree implements Serializable, Cloneable{
         } else {
             int index = getChildIndex(point);
             if (children[index] == null) {
-                children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
+                children[index] = new QuadTree(getChildPositionByIndex(index), range / 2.0, depth - 1);
             }
             children[index].setFilled(point);
             this.setFilledIfChildrenAreFilled();
@@ -200,7 +198,7 @@ public class QuadTree implements Serializable, Cloneable{
         } else {
             int index = getChildIndex(v2);
             if(children[index] == null){
-                children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
+                children[index] = new QuadTree(getChildPositionByIndex(index), range / 2.0, depth - 1);
             }
             return children[index].getNodeAt(v2);
         }
@@ -222,7 +220,7 @@ public class QuadTree implements Serializable, Cloneable{
         } else {
             int index = getChildIndex(point);
             if (children[index] == null) {
-                children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
+                children[index] = new QuadTree(getChildPositionByIndex(index), range /2.0, depth - 1);
             }
             children[index].setObstacle(point);
         }
@@ -231,25 +229,28 @@ public class QuadTree implements Serializable, Cloneable{
     private Vector2 getChildPositionByIndex(int index) {
         switch (index) {
             case 0:
-                return new Vector2(x, y);
+                return new Vector2(x - range / 4.0, y - range /4.0);
             case 1:
-                return new Vector2(x, y + halfRange);
+                return new Vector2(x - range / 4.0, y + range / 4.0);
             case 2:
-                return new Vector2(x + halfRange, y);
+                return new Vector2(x + range / 4.0, y - range / 4.0);
+            case 3:
+                return new Vector2(x + range / 4.0, y + range / 4.0);
             default:
-                return new Vector2(x + halfRange, y + halfRange);
+                return null;
         }
     }
 
     private int getChildIndex(Vector2 point) {
-        if (point.getX() < x + halfRange) {
-            if (point.getY() < y + halfRange) {
+        // TODO move quadrant
+        if (point.getX() < x) {
+            if (point.getY() < y ) {
                 return 0;
             } else {
                 return 1;
             }
         } else {
-            if (point.getY() < y + halfRange) {
+            if (point.getY() < y) {
                 return 2;
             } else {
                 return 3;
@@ -294,10 +295,10 @@ public class QuadTree implements Serializable, Cloneable{
     }
 
     private boolean outOfRange(Vector2 to) {
-        return to.getX() > x + range ||
-                to.getX() < x ||
-                to.getY() > y + range ||
-                to.getY() < y;
+        return to.getX() > x + range / 2.0 ||
+                to.getX() < x - range / 2.0 ||
+                to.getY() > y + range / 2.0||
+                to.getY() < y - range / 2.0;
     }
 
     public double getUnit() {
@@ -326,7 +327,7 @@ public class QuadTree implements Serializable, Cloneable{
             }
             int index = getChildIndex(v);
             if (children[index] == null) {
-                children[index] = new QuadTree(getChildPositionByIndex(index), halfRange, depth - 1);
+                children[index] = new QuadTree(getChildPositionByIndex(index), range / 2.0, depth - 1);
             }
             children[index].forceFilled(v, filled);
             this.setFilledIfChildrenAreFilled();

@@ -23,8 +23,9 @@ import de.stetro.tango.arnavigation.ui.util.MappingUtils;
 
 public class EnvironmentMapper {
 
-	public static final int QUAD_TREE_START = -60;
+	public static final int QUAD_TREE_START = 0;
 	public static final int QUAD_TREE_RANGE = 120;
+	public static final int QUAD_TREE_DEPTH = 9;
 	public static final int POINTCLOUD_SAMPLE_RATE = 9;
 	private static final double ACCURACY = 0.15;
 	private static final double OBSTACLE_HEIGHT = 0.4;
@@ -43,7 +44,7 @@ public class EnvironmentMapper {
 	}
 
 	public EnvironmentMapper(){
-		map = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
+		map = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, QUAD_TREE_DEPTH);
 	}
 
 	public EnvironmentMapper(QuadTree map) {
