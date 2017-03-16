@@ -170,8 +170,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				adfuuid = environment.getADFUUID();
 				tree = loadFromFile(environment.getADFUUID());
 				if (tree != null) {
-//					mapper = new EnvironmentMapper(tree);
-//					mapper.setFloorLevel(environment.getFloorLevel());
+					mapper = new EnvironmentMapper(tree);
+					mapper.setFloorLevel(environment.getFloorLevel());
 					renderer = new SceneRenderer(this, tree);
 					currentState = ActivityState.localizing;
 				} else {
@@ -418,12 +418,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		TangoConfig config = tango.getConfig(TangoConfig.CONFIG_TYPE_DEFAULT);
 		config.putBoolean(TangoConfig.KEY_BOOLEAN_LOWLATENCYIMUINTEGRATION, true);
 		config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
-		config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
-		config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
 		config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
+		config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
 		if (adfuuid.equals("")) {
+			config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
 			config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
 		} else {
+			config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, false);
 			config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION, adfuuid);
 		}
 		return config;

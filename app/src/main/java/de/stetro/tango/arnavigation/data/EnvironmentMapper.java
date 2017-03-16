@@ -143,12 +143,6 @@ public class EnvironmentMapper {
 	public void toggle(Vector2 v2){
 		QuadTree node = map.getNodeAt(v2);
 		map.forceFilledInvalidate(v2,!node.isFilled());
-//		node.setObstacle(true);
-//		node.setFilled(!node.isFilled());
-//		if(map.listener != null){
-//			map.listener.OnQuadTreeUpdate();
-//		}
-//		node.setFilledInvalidate(v2);
 		if(listener != null){
 			listener.onMapUpdate(map.clone());
 		}
