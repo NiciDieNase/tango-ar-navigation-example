@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -65,6 +66,7 @@ import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
 import de.stetro.tango.arnavigation.rendering.SceneRenderer;
 import de.stetro.tango.arnavigation.ui.SelectEnvironmentFragment.EnvironmentSelectionListener;
+import de.stetro.tango.arnavigation.ui.util.MappingUtils;
 import de.stetro.tango.arnavigation.ui.util.ScenePreFrameCallbackAdapter;
 import de.stetro.tango.arnavigation.ui.views.MapView;
 
@@ -439,8 +441,14 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	public boolean onTouch(View view, MotionEvent motionEvent) {
 		if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
 			// Calculate click location in u,v (0;1) coordinates.
-			float u = motionEvent.getX() / view.getWidth();
-			float v = motionEvent.getY() / view.getHeight();
+			float u,v;
+			if(MappingUtils.getDeviceDefaultOrientation(this) == Configuration.ORIENTATION_LANDSCAPE){
+				u = motionEvent.getX() / view.getWidth();
+				v = motionEvent.getY() / view.getHeight();
+			} else {
+				v = motionEvent.getX() / view.getWidth();
+				u = 1.0f - motionEvent.getY() / view.getHeight();
+			}
 //			float v = view.getHeight()/motionEvent.getY();
 
 			try {

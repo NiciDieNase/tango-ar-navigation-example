@@ -1,7 +1,11 @@
 package de.stetro.tango.arnavigation.ui.util;
 
+import android.content.Context;
+import android.content.res.Configuration;
 import android.opengl.Matrix;
 import android.util.Log;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
@@ -97,5 +101,22 @@ public class MappingUtils {
 				TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
 				TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
 				TangoSupport.ROTATION_IGNORED);
+	}
+
+	public static int getDeviceDefaultOrientation(Context context) {
+		WindowManager windowManager =  (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+
+		Configuration config = context.getResources().getConfiguration();
+
+		int rotation = windowManager.getDefaultDisplay().getRotation();
+
+		if ( ((rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180) &&
+				config.orientation == Configuration.ORIENTATION_LANDSCAPE)
+				|| ((rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) &&
+				config.orientation == Configuration.ORIENTATION_PORTRAIT)) {
+			return Configuration.ORIENTATION_LANDSCAPE;
+		} else {
+			return Configuration.ORIENTATION_PORTRAIT;
+		}
 	}
 }
