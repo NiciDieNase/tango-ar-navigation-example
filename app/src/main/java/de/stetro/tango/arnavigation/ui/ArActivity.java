@@ -75,8 +75,7 @@ import de.stetro.tango.arnavigation.ui.views.MapView;
 
 import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchPosition;
 
-public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener,
-		EnvironmentMapper.OnMapUpdateListener {
+public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener {
 
 	private long environment_id;
 
@@ -211,7 +210,18 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			currentState = ActivityState.mapping;
 			fabAddPoi.hide();
 		}
-		mapper.setListener(this);
+		mapper.setListener(new EnvironmentMapper.OnMapUpdateListener() {
+			@Override
+			public void onMapUpdate(QuadTree data) {
+				newMapData = data;
+				newQuadtree = true;
+			}
+
+			@Override
+			public void onNewCalcTimes(double avg, long last) {
+
+			}
+		});
 
 		tangoUx = new TangoUx(this);
 		tangoUx.setLayout(uxLayout);
@@ -552,17 +562,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	@Override
 	public void onEnvironmentSelected(EnvironmentDAO environment) {
 		loadEnvironment(environment.getId());
-	}
-
-	@Override
-	public void onMapUpdate(QuadTree data) {
-		this.newMapData = data;
-		this.newQuadtree = true;
-	}
-
-	@Override
-	public void onNewCalcTimes(double avg, long last) {
-
 	}
 
 	private boolean checkAndRequestPermissions() {
