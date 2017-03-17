@@ -28,6 +28,7 @@ import org.rajawali3d.primitives.Line3D;
 import org.rajawali3d.primitives.ScreenQuad;
 import org.rajawali3d.primitives.Sphere;
 import org.rajawali3d.renderer.RajawaliRenderer;
+import org.rajawali3d.scene.RajawaliScene;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 import de.stetro.tango.arnavigation.data.PathFinder;
 import de.stetro.tango.arnavigation.data.QuadTree;
+import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
 
 
 public class SceneRenderer extends RajawaliRenderer {
@@ -65,6 +67,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderFloorPlan = false;
     private Sphere PointOfInterest;
     private boolean renderPOI;
+    private List<Sphere> POIs = new ArrayList<>();
 
     public SceneRenderer(Context context) {
         super(context);
@@ -320,5 +323,21 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void hidePOI(){
         PointOfInterest.setVisible(false);
+    }
+
+    public void showPOIs(List<PoiDAO> poiDAOs) {
+        RajawaliScene scene = getCurrentScene();
+        for(Sphere s: POIs){
+            scene.removeChild(s);
+        }
+        POIs.clear();
+        for(PoiDAO p:poiDAOs){
+            Sphere sphere = new Sphere(.5f, 20, 20);
+            sphere.setPosition(p.getPosition());
+            sphere.setMaterial(green);
+            scene.addChild(sphere);
+            POIs.add(sphere);
+        }
+
     }
 }

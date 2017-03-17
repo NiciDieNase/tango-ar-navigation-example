@@ -57,6 +57,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import butterknife.Bind;
@@ -79,13 +80,14 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	private long environment_id;
 
-	public enum ActivityState {mapping, editing, localizing, navigating, undefined}
 
+	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
+
 	public static final TangoCoordinateFramePair DEVICE_T_PREVIOUS_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
@@ -98,32 +100,32 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
 					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE);
-
 	// This changes the Camera Texture and Intrinsics
 	protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
+
 	protected static final int INVALID_TEXTURE_ID = -1;
 	private static final String TAG = ArActivity.class.getSimpleName();
 	public static final boolean LEARNINGMODE_ENABLED = true;
 	public static final String KEY_ENVIRONMENT_ID = "environment_id";
 	protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
-
 	protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
+
 	protected Tango tango;
 	protected TangoUx tangoUx;
 	protected TangoCameraIntrinsics intrinsics;
 	protected SceneRenderer renderer;
 	protected EnvironmentMapper mapper;
-
 	protected DeviceExtrinsics extrinsics;
-	private TangoPointCloudManager mPointCloudManager;
 
+	private TangoPointCloudManager mPointCloudManager;
 	protected int connectedTextureId;
 
 	protected double rgbFrameTimestamp;
-	protected double cameraPoseTimestamp;
 
+	protected double cameraPoseTimestamp;
 //	@Bind(R.id.gl_main_surface_view)
 	RajawaliSurfaceView mainSurfaceView;
+
 	@Bind(R.id.toolbar) Toolbar toolbar;
 	@Bind(R.id.tango_ux_layout) TangoUxLayout uxLayout;
 	@Bind(R.id.map_view) MapView mapView;
@@ -131,18 +133,19 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	@Bind(R.id.fab_save) FloatingActionButton fabSave;
 	@Bind(R.id.fab_addpoi) FloatingActionButton fabAddPoi;
 	@Bind(R.id.progressSpinner) ProgressBar progressBar;
-
 	private int mDisplayRotation;
+
 	private TangoImageBuffer mCurrentImageBuffer;
 	private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
 	private String adfuuid = "";
 	QuadTree tree = null;
-
 	private boolean capturePointcloud = true;
+
 	private boolean newPointcloud = false;
 	private boolean localized = false;
 	private boolean togglePointcloud = false;
 	private boolean newQuadtree = false;
+	private boolean updatePOIs;
 	private QuadTree newMapData;
 
 	private ActivityState currentState = ActivityState.undefined;
@@ -206,6 +209,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			mapper = new EnvironmentMapper();
 			renderer = new SceneRenderer(this);
 			currentState = ActivityState.mapping;
+			fabAddPoi.hide();
 		}
 		mapper.setListener(this);
 
@@ -276,6 +280,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private void addPOI(float[] p, String name, String description) {
 		PoiDAO poi = new PoiDAO(environment_id, name, description, p[0], p[1], p[2]);
 		poi.save();
+		updatePOIs = true;
 	}
 
 	private void loadEnvironment(Long id) {
@@ -726,6 +731,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 					if(togglePointcloud){
 						renderer.showPointCloud(!renderer.getRenderPointCloud());
 						togglePointcloud = false;
+					}
+					if(updatePOIs){
+						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
+						renderer.showPOIs(poiDAOs);
+						updatePOIs = false;
 					}
 				} catch (TangoInvalidException e){
 					Log.d(TAG,e.getMessage(),e);
