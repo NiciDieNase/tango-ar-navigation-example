@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <org.rajawali3d.surface.RajawaliSurfaceView
+            <FrameLayout
                 android:id="@+id/gl_main_surface_view"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

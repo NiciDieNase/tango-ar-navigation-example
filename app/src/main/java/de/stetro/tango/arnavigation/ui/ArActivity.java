@@ -23,6 +23,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -121,7 +122,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	protected double rgbFrameTimestamp;
 	protected double cameraPoseTimestamp;
 
-	@Bind(R.id.gl_main_surface_view) RajawaliSurfaceView mainSurfaceView;
+//	@Bind(R.id.gl_main_surface_view)
+	RajawaliSurfaceView mainSurfaceView;
 	@Bind(R.id.toolbar) Toolbar toolbar;
 	@Bind(R.id.tango_ux_layout) TangoUxLayout uxLayout;
 	@Bind(R.id.map_view) MapView mapView;
@@ -172,6 +174,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		setSupportActionBar(toolbar);
 
 		Bundle extras = getIntent().getExtras();
+
+		mainSurfaceView = new RajawaliSurfaceView(this);
+		View v1 = findViewById(R.id.gl_main_surface_view);
+		ViewGroup parent = (ViewGroup) v1.getParent();
+		int index = parent.indexOfChild(v1);
+		parent.removeView(v1);
+		parent.addView(mainSurfaceView, index);
 
 		if (extras != null) {
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
@@ -724,4 +733,5 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			}
 		}
 	}
+
 }
