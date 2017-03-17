@@ -249,11 +249,16 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 //				TangoPoseData poseData = tango.getPoseAtTime(0.0, ADF_T_DEVICE_FRAME_PAIR);
 //				TangoSupport.TangoMatrixTransformData transform = MappingUtils.getTransform(poseData.timestamp);
 //				float[] p = MappingUtils.deviceToADFFRame(poseData.timestamp,poseData.getTranslationAsFloats());
-				float[] p = poseData.getTranslationAsFloats();
+				final float[] p = poseData.getTranslationAsFloats();
 				// TODO get Name and description
-				String name = "Point of interest";
+				final String name = "Point of interest";
 				String description = "Very interesting";
-				addPOI(p, name, description);
+				new SaveDialogFragment().setListener(new SaveDialogFragment.OnSaveListener() {
+					@Override
+					public void onSave(String title, String description) {
+						addPOI(p, title, description);
+					}
+				}).show(getFragmentManager(),"saveDialog");
 			}
 		});
 
