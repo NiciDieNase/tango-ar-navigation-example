@@ -121,7 +121,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	protected double rgbFrameTimestamp;
 
 	protected double cameraPoseTimestamp;
-//	@BindView(R.id.gl_main_surface_view)
 	RajawaliSurfaceView mainSurfaceView;
 
 	@BindView(R.id.toolbar) Toolbar toolbar;
@@ -256,13 +255,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			@Override
 			public void onClick(View v) {
 				TangoPoseData poseData = getCurrentPose();
-//				TangoPoseData poseData = tango.getPoseAtTime(0.0, ADF_T_DEVICE_FRAME_PAIR);
-//				TangoSupport.TangoMatrixTransformData transform = MappingUtils.getTransform(poseData.timestamp);
-//				float[] p = MappingUtils.deviceToADFFRame(poseData.timestamp,poseData.getTranslationAsFloats());
 				final float[] p = poseData.getTranslationAsFloats();
-				// TODO get Name and description
-				final String name = "Point of interest";
-				String description = "Very interesting";
 				new SaveDialogFragment().setListener(new SaveDialogFragment.OnSaveListener() {
 					@Override
 					public void onSave(String title, String description) {
