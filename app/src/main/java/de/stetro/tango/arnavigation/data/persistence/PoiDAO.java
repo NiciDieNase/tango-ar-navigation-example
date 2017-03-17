@@ -42,7 +42,7 @@ public class PoiDAO extends SugarRecord {
 	}
 
 	public Vector3 getPosition(){
-		return new Vector3(x,y,z);
+		return new Vector3(x,z,-y);
 	}
 
 	public long getEnvironmentID() {

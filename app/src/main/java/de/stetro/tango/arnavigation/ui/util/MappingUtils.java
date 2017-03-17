@@ -31,6 +31,17 @@ public class MappingUtils {
 		return frameTransform(pointCloud.timestamp, point, transform);
 	}
 
+	public static float[] deviceToADFFRame(double timestamp, float[] point) {
+		TangoSupport.TangoMatrixTransformData transform =
+				TangoSupport.getMatrixTransformAtTime(timestamp,
+						TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
+						TangoPoseData.COORDINATE_FRAME_DEVICE,
+						TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL,
+						TangoSupport.TANGO_SUPPORT_ENGINE_TANGO,
+						TangoSupport.ROTATION_IGNORED);
+		return frameTransform(timestamp,point,transform);
+	}
+
 	public static float[] depthToADFFrame(TangoPointCloudData pointCloud, float[] point) {
 		TangoSupport.TangoMatrixTransformData transform =
 				TangoSupport.getMatrixTransformAtTime(pointCloud.timestamp,
@@ -44,10 +55,10 @@ public class MappingUtils {
 
 	public static  float[] frameTransform(double timestamp, float[] point, TangoSupport.TangoMatrixTransformData transform) {
 		if (transform.statusCode == TangoPoseData.POSE_VALID) {
-			float[] depthPoint = new float[]{point[0], point[1], point[2], 1};
-			float[] openGlPoint = new float[4];
-			Matrix.multiplyMV(openGlPoint, 0, transform.matrix, 0, depthPoint, 0);
-			return openGlPoint;
+			float[] basePoint = new float[]{point[0], point[1], point[2], 1};
+			float[] resultPoint = new float[4];
+			Matrix.multiplyMV(resultPoint, 0, transform.matrix, 0, basePoint, 0);
+			return resultPoint;
 		} else {
 			Log.w(TAG, "Could not get depth camera transform at time " + timestamp);
 		}

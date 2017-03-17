@@ -17,6 +17,8 @@ import com.projecttango.rajawali.ScenePoseCalculator;
 import org.rajawali3d.curves.CatmullRomCurve3D;
 import org.rajawali3d.lights.DirectionalLight;
 import org.rajawali3d.materials.Material;
+import org.rajawali3d.materials.methods.DiffuseMethod;
+import org.rajawali3d.materials.methods.SpecularMethod;
 import org.rajawali3d.materials.textures.ATexture;
 import org.rajawali3d.materials.textures.StreamingTexture;
 import org.rajawali3d.math.Matrix4;
@@ -59,6 +61,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean fillPath = false;
     private Material blue;
     private Material green;
+    private Material red;
     private boolean renderVirtualObjects;
     private boolean renderPointCloud = true;
     private PointCloud mPointCloud;
@@ -114,7 +117,13 @@ public class SceneRenderer extends RajawaliRenderer {
         blue.setColor(Color.BLUE);
 
         green = new Material();
-        green.setColor(Color.BLUE);
+        green.setColor(Color.GREEN);
+
+        red = new Material();
+        red.setColor(Color.RED);
+        red.setDiffuseMethod(new DiffuseMethod.Lambert());
+        red.setSpecularMethod(new SpecularMethod.Phong());
+        red.enableLighting(true);
 
         floorPlan = new FloorPlan(data);
         getCurrentScene().addChild(floorPlan);
@@ -131,8 +140,8 @@ public class SceneRenderer extends RajawaliRenderer {
 
         PointOfInterest = new Sphere(.5f, 20,20);
         PointOfInterest.setVisible(false);
-        PointOfInterest.setMaterial(blue);
-        getCurrentScene().addChild(PointOfInterest);
+        PointOfInterest.setMaterial(red);
+//        getCurrentScene().addChild(PointOfInterest);
     }
 
     /**
@@ -332,9 +341,9 @@ public class SceneRenderer extends RajawaliRenderer {
         }
         POIs.clear();
         for(PoiDAO p:poiDAOs){
-            Sphere sphere = new Sphere(.5f, 20, 20);
+            Sphere sphere = new Sphere(.3f, 20, 20);
             sphere.setPosition(p.getPosition());
-            sphere.setMaterial(green);
+            sphere.setMaterial(red);
             scene.addChild(sphere);
             POIs.add(sphere);
         }

@@ -87,7 +87,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
-
 	public static final TangoCoordinateFramePair DEVICE_T_PREVIOUS_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
@@ -202,6 +201,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				capturePointcloud = false;
 				fabPause.hide();
 				fabSave.hide();
+				updatePOIs = true;
 				showProgressBar();
 			}
 		}
@@ -245,7 +245,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		fabAddPoi.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				TangoPoseData poseData = tango.getPoseAtTime(0.0, ADF_T_DEVICE_FRAME_PAIR);
+				TangoPoseData poseData = getCurrentPose();
+//				TangoPoseData poseData = tango.getPoseAtTime(0.0, ADF_T_DEVICE_FRAME_PAIR);
+//				TangoSupport.TangoMatrixTransformData transform = MappingUtils.getTransform(poseData.timestamp);
+//				float[] p = MappingUtils.deviceToADFFRame(poseData.timestamp,poseData.getTranslationAsFloats());
 				float[] p = poseData.getTranslationAsFloats();
 				// TODO get Name and description
 				String name = "Point of interest";
@@ -385,6 +388,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				break;
 			case R.id.load_environment:
 				new SelectEnvironmentFragment().setEnvironmentSelectionListener(this).show(getFragmentManager(),"loadEnvDialog");
+				break;
+			case R.id.clear_pois:
+				if(environment_id != 0){
+					PoiDAO.deleteAll(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
+				} else {
+					PoiDAO.deleteAll(PoiDAO.class);
+				}
 				break;
 		}
 		return super.onOptionsItemSelected(item);
