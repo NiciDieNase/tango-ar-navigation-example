@@ -44,7 +44,8 @@ dependencies {
 
     // UI and CG
     compile 'org.rajawali3d:rajawali:1.0.325@aar'
-    compile 'com.jakewharton:butterknife:7.0.1'
+    compile 'com.jakewharton:butterknife:8.5.1'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:8.5.1'
 
     // Support Libraries
     compile 'com.android.support:design:24.0.0-alpha1'

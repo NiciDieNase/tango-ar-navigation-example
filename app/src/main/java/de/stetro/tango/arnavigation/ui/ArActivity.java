@@ -60,7 +60,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import butterknife.Bind;
+import butterknife.BindView;
 import butterknife.ButterKnife;
 import de.stetro.tango.arnavigation.R;
 import de.stetro.tango.arnavigation.data.EnvironmentMapper;
@@ -122,16 +122,16 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	protected double rgbFrameTimestamp;
 
 	protected double cameraPoseTimestamp;
-//	@Bind(R.id.gl_main_surface_view)
+//	@BindView(R.id.gl_main_surface_view)
 	RajawaliSurfaceView mainSurfaceView;
 
-	@Bind(R.id.toolbar) Toolbar toolbar;
-	@Bind(R.id.tango_ux_layout) TangoUxLayout uxLayout;
-	@Bind(R.id.map_view) MapView mapView;
-	@Bind(R.id.fab_pause) FloatingActionButton fabPause;
-	@Bind(R.id.fab_save) FloatingActionButton fabSave;
-	@Bind(R.id.fab_addpoi) FloatingActionButton fabAddPoi;
-	@Bind(R.id.progressSpinner) ProgressBar progressBar;
+	@BindView(R.id.toolbar) Toolbar toolbar;
+	@BindView(R.id.tango_ux_layout) TangoUxLayout uxLayout;
+	@BindView(R.id.map_view) MapView mapView;
+	@BindView(R.id.fab_pause) FloatingActionButton fabPause;
+	@BindView(R.id.fab_save) FloatingActionButton fabSave;
+	@BindView(R.id.fab_addpoi) FloatingActionButton fabAddPoi;
+	@BindView(R.id.progressSpinner) ProgressBar progressBar;
 	private int mDisplayRotation;
 
 	private TangoImageBuffer mCurrentImageBuffer;
