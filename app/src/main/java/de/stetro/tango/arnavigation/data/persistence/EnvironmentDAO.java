@@ -11,6 +11,8 @@ public class EnvironmentDAO extends SugarRecord {
     long rootNodeId;
     double floorLevel;
     String ADFUUID;
+    String title;
+    String description;
 
     public EnvironmentDAO(){};
 
@@ -18,6 +20,14 @@ public class EnvironmentDAO extends SugarRecord {
         this.ADFUUID = ADFUUID;
         this.rootNodeId = rootNodeId;
         this.floorLevel = floorLevel;
+    }
+
+    public EnvironmentDAO(long rootNodeId, double floorLevel, String ADFUUID, String title, String description) {
+        this.rootNodeId = rootNodeId;
+        this.floorLevel = floorLevel;
+        this.ADFUUID = ADFUUID;
+        this.title = title;
+        this.description = description;
     }
 
     public long getRootNodeId() {
