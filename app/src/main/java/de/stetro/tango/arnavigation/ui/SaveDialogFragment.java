@@ -37,10 +37,9 @@ public class SaveDialogFragment extends DialogFragment {
 		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 		LayoutInflater inflater = getActivity().getLayoutInflater();
 		final View layout = inflater.inflate(R.layout.savedialog_layout, null);
-		ButterKnife.bind(layout);
+		ButterKnife.bind(this,layout);
 		builder.setView(layout);
 		builder.setTitle("Save");
-
 		builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -51,8 +50,12 @@ public class SaveDialogFragment extends DialogFragment {
 				}
 			}
 		});
+		builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialogInterface, int i) {
+			}
+		});
 		builder.setCancelable(true);
-
 		return builder.create();
 	}
 }

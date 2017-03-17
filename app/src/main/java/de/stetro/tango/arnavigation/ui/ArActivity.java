@@ -403,6 +403,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				} else {
 					PoiDAO.deleteAll(PoiDAO.class);
 				}
+				updatePOIs = true;
 				break;
 		}
 		return super.onOptionsItemSelected(item);
