@@ -318,6 +318,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				double[] v = getCurrentPose().translation;
 				Vector3 start = new Vector3(v[0], v[2], -v[1]);
 				renderer.setPath(start, poi.getPosition());
+				renderer.setPathHeight(v[2]-0.3);
 				renderer.showPOI(poi.getPosition());
 				mDrawerLayout.closeDrawer(Gravity.LEFT);
 			}

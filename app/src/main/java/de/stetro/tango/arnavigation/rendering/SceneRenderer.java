@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.animation.LinearInterpolator;
 
 import com.google.atap.tangoservice.TangoCameraIntrinsics;
 import com.google.atap.tangoservice.TangoPointCloudData;
@@ -15,6 +16,8 @@ import com.projecttango.rajawali.Pose;
 import com.projecttango.rajawali.ScenePoseCalculator;
 
 import org.rajawali3d.Object3D;
+import org.rajawali3d.animation.Animation;
+import org.rajawali3d.animation.RotateAnimation3D;
 import org.rajawali3d.curves.CatmullRomCurve3D;
 import org.rajawali3d.lights.PointLight;
 import org.rajawali3d.materials.Material;
@@ -26,6 +29,7 @@ import org.rajawali3d.math.Matrix4;
 import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector2;
 import org.rajawali3d.math.vector.Vector3;
+import org.rajawali3d.primitives.Cylinder;
 import org.rajawali3d.primitives.Line3D;
 import org.rajawali3d.primitives.ScreenQuad;
 import org.rajawali3d.primitives.Sphere;
@@ -70,10 +74,12 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderFloorPlan = false;
     private boolean renderSpheres = true;
     private boolean renderLine = false;
-    private Sphere PointOfInterest;
+    private Cylinder PointOfInterest;
     private boolean renderPOI = false;
     private List<Sphere> POIs = new ArrayList<>();
     private PointLight light;
+    private double pathHeight;
+    private RotateAnimation3D anim;
 
     public SceneRenderer(Context context) {
         super(context);
@@ -149,10 +155,18 @@ public class SceneRenderer extends RajawaliRenderer {
         TrackPoint.setMaterial(tangoCameraMaterial);
         getCurrentScene().addChild(TrackPoint);
 
-        PointOfInterest = new Sphere(.5f, 20,20);
+        PointOfInterest = new Cylinder(.10f,.20f, 20,20);
         PointOfInterest.setVisible(false);
         PointOfInterest.setMaterial(red);
-//        getCurrentScene().addChild(PointOfInterest);
+        getCurrentScene().addChild(PointOfInterest);
+
+        anim = new RotateAnimation3D(0.0,360.0,0.0);
+        anim.setDurationMilliseconds(10000);
+        anim.setRepeatMode(Animation.RepeatMode.INFINITE);
+        anim.setTransformable3D(PointOfInterest);
+        anim.setInterpolator(new LinearInterpolator());
+        getCurrentScene().registerAnimation(anim);
+        anim.play();
     }
 
     /**
@@ -246,7 +260,7 @@ public class SceneRenderer extends RajawaliRenderer {
                         if(renderSpheres && i%10 == 0){
                             Sphere s = new Sphere(0.10f,20,20);
                             s.setPosition(v);
-                            s.setY(s.getY()+1.2);
+                            s.setY(pathHeight);
                             s.setMaterial(yellow);
                             pathObjects.add(s);
                         }
@@ -384,5 +398,9 @@ public class SceneRenderer extends RajawaliRenderer {
             POIs.add(sphere);
         }
 
+    }
+
+    public void setPathHeight(double pathHeight) {
+        this.pathHeight = pathHeight;
     }
 }
