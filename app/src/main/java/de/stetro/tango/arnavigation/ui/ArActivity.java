@@ -141,6 +141,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private boolean newPointcloud = false;
 	private boolean localized = false;
 	private boolean togglePointcloud = false;
+	private boolean toggleFloorplan = false;
 	private boolean newQuadtree = false;
 	private boolean updatePOIs;
 	private QuadTree newMapData;
@@ -389,10 +390,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				break;
 			case R.id.toggle_point_cloud:
 				togglePointcloud = true;
-				Snackbar.make(uxLayout, "Pointcloud visibility is now " + renderer.getRenderPointCloud(),Snackbar.LENGTH_SHORT).show();
 				break;
 			case R.id.toggle_floor_plan:
-				renderer.renderFloorPlan(!renderer.getRenderFloorPlan());
+				toggleFloorplan = true;
 				break;
 			case R.id.load_environment:
 				new SelectEnvironmentFragment().setEnvironmentSelectionListener(this).show(getFragmentManager(),"loadEnvDialog");
@@ -609,6 +609,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				// Handle new ADF Pose
 			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE) {
+				if(!localized){
+					renderer.renderVirtualObjects(true);
+				}
 				localized = true;
 				runOnUiThread(new Runnable() {
 					@Override
@@ -616,7 +619,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						hideProgressBar();
 					}
 				});
-				renderer.renderVirtualObjects(true);
 			}
 		}
 
@@ -732,13 +734,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 						newQuadtree = false;
 					}
-					if (localized) {
-						renderer.renderFloorPlan(true);
-						localized = false;
-					}
 					if(togglePointcloud){
 						renderer.showPointCloud(!renderer.getRenderPointCloud());
 						togglePointcloud = false;
+					}
+					if(toggleFloorplan){
+						renderer.renderFloorPlan(!renderer.getRenderFloorPlan());
+						toggleFloorplan = false;
 					}
 					if(updatePOIs){
 						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));

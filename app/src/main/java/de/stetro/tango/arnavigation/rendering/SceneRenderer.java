@@ -44,8 +44,8 @@ import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
 
 
 public class SceneRenderer extends RajawaliRenderer {
-    public static final int QUAD_TREE_START = -60;
-    public static final int QUAD_TREE_RANGE = 120;
+    private static final int QUAD_TREE_START = -60;
+    private static final int QUAD_TREE_RANGE = 120;
     private static final String TAG = SceneRenderer.class.getSimpleName();
     private static final int MAX_NUMBER_OF_POINTS = 60000;
     private QuadTree data;
@@ -59,7 +59,6 @@ public class SceneRenderer extends RajawaliRenderer {
     private Material green;
     private Material red;
     private Material yellow;
-    private boolean renderVirtualObjects;
     private PointCloud mPointCloud;
     private Sphere TrackPoint;
 
@@ -218,6 +217,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
     }
 
+
     @Override
     protected void onRender(long ellapsedRealtime, double deltaTime) {
         synchronized (this){
@@ -226,8 +226,9 @@ public class SceneRenderer extends RajawaliRenderer {
                 PathFinder finder = new PathFinder(floorPlan.getData());
                 CatmullRomCurve3D curvePath = new CatmullRomCurve3D();
                 try {
+                    RajawaliScene scene = getCurrentScene();
                     for(Object3D obj:pathObjects){
-                        getCurrentScene().removeChild(obj);
+                        scene.removeChild(obj);
                     }
                     pathObjects.clear();
                     List<Vector2> path = finder.findPathBetween(startPoint, endPoint);
@@ -235,22 +236,23 @@ public class SceneRenderer extends RajawaliRenderer {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
                     Stack linePoints = new Stack();
-                    int numSegments = (int) Math.floor(curvePath.getLength(100) / 10);
-                    Log.d(TAG,"Calculated Number of segments: " + numSegments);
+                    Log.d(TAG,"Calculated Number of segments: " + Math.floor(curvePath.getLength(100)));
                     for (int i = 0; i < 100; i++) {
                         Vector3 v = new Vector3();
                         curvePath.calculatePoint(v,i / 100f);
                         linePoints.add(v);
-                        Sphere s = new Sphere(0.10f,20,20);
-                        s.setPosition(v);
-                        s.setMaterial(yellow);
-                        pathObjects.add(s);
+                        if(i%10 == 0){
+                            Sphere s = new Sphere(0.10f,20,20);
+                            s.setPosition(v);
+                            s.setMaterial(yellow);
+                            pathObjects.add(s);
+                        }
                     }
                     Line3D line = new Line3D(linePoints, 10, Color.BLUE);
                     line.setMaterial(blue);
                     pathObjects.add(line);
                     for(Object3D obj:pathObjects){
-                        getCurrentScene().addChild(obj);
+                        scene.addChild(obj);
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "onRender: " + e.getMessage(), e);
@@ -288,11 +290,14 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void renderVirtualObjects(boolean renderObjects) {
-        renderVirtualObjects = renderObjects;
-        if (this.floorPlan != null)
+        if (this.floorPlan != null){
+            this.renderFloorPlan = renderObjects;
             this.floorPlan.setVisible(renderObjects);
-        if(this.mPointCloud != null)
+        }
+        if(this.mPointCloud != null){
+            this.renderPointCloud = renderObjects;
             this.mPointCloud.setVisible(renderObjects);
+        }
     }
 
     public void addToFloorPlan(List<List<Vector3>>positions){
