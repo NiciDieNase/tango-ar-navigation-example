@@ -16,7 +16,7 @@ import com.projecttango.rajawali.ScenePoseCalculator;
 
 import org.rajawali3d.Object3D;
 import org.rajawali3d.curves.CatmullRomCurve3D;
-import org.rajawali3d.lights.DirectionalLight;
+import org.rajawali3d.lights.PointLight;
 import org.rajawali3d.materials.Material;
 import org.rajawali3d.materials.methods.DiffuseMethod;
 import org.rajawali3d.materials.methods.SpecularMethod;
@@ -72,6 +72,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private Sphere PointOfInterest;
     private boolean renderPOI;
     private List<Sphere> POIs = new ArrayList<>();
+    private PointLight light;
 
     public SceneRenderer(Context context) {
         super(context);
@@ -107,12 +108,6 @@ public class SceneRenderer extends RajawaliRenderer {
         }
         getCurrentScene().addChildAt(backgroundQuad, 0);
 
-        // Add a directional light in an arbitrary direction.
-        DirectionalLight light = new DirectionalLight(1, 0.2, -1);
-        light.setColor(1, 1, 1);
-        light.setPower(0.8f);
-        light.setPosition(3, 2, 4);
-        getCurrentScene().addLight(light);
 
         blue = new Material();
         blue.setColor(Color.BLUE);
@@ -131,6 +126,14 @@ public class SceneRenderer extends RajawaliRenderer {
         red.setDiffuseMethod(new DiffuseMethod.Lambert());
         red.setSpecularMethod(new SpecularMethod.Phong());
         red.enableLighting(true);
+
+        // Add a directional light in an arbitrary direction.
+        light = new PointLight();
+        light.setColor(1, 1, 1);
+        light.setPower(0.8f);
+        light.setPosition(3, 2, 4);
+        getCurrentScene().addLight(light);
+
 
         floorPlan = new FloorPlan(data);
         getCurrentScene().addChild(floorPlan);
@@ -162,6 +165,9 @@ public class SceneRenderer extends RajawaliRenderer {
         getCurrentCamera().setRotation(cameraPose.getOrientation());
         getCurrentCamera().setPosition(cameraPose.getPosition());
         floorPlan.setTrajectoryPosition(cameraPose.getPosition());
+        Vector3 position = cameraPose.getPosition();
+        position.y = 3.0;
+        light.setPosition(position);
 //        floorPlan.forceAdd(cameraPose.getPosition());
     }
 
