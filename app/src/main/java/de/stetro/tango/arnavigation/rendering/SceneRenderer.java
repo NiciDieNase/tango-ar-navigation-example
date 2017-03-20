@@ -14,6 +14,7 @@ import com.projecttango.rajawali.DeviceExtrinsics;
 import com.projecttango.rajawali.Pose;
 import com.projecttango.rajawali.ScenePoseCalculator;
 
+import org.rajawali3d.Object3D;
 import org.rajawali3d.curves.CatmullRomCurve3D;
 import org.rajawali3d.lights.DirectionalLight;
 import org.rajawali3d.materials.Material;
@@ -25,7 +26,6 @@ import org.rajawali3d.math.Matrix4;
 import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector2;
 import org.rajawali3d.math.vector.Vector3;
-import org.rajawali3d.primitives.Cube;
 import org.rajawali3d.primitives.Line3D;
 import org.rajawali3d.primitives.ScreenQuad;
 import org.rajawali3d.primitives.Sphere;
@@ -55,18 +55,19 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean mSceneCameraConfigured;
 
     private FloorPlan floorPlan;
-    private Pose startPoint;
-    private Pose endPoint;
-    private List<Cube> pathCubes = new ArrayList<>();
-    private boolean fillPath = false;
     private Material blue;
     private Material green;
     private Material red;
+    private Material yellow;
     private boolean renderVirtualObjects;
-    private boolean renderPointCloud = true;
     private PointCloud mPointCloud;
     private Sphere TrackPoint;
-    private Line3D line;
+
+    private Vector3 startPoint;
+    private Vector3 endPoint;
+    private List<Object3D> pathObjects = new ArrayList<>();
+    private boolean renderPath = false;
+    private boolean renderPointCloud = true;
     private boolean renderFloorPlan = false;
     private Sphere PointOfInterest;
     private boolean renderPOI;
@@ -118,6 +119,12 @@ public class SceneRenderer extends RajawaliRenderer {
 
         green = new Material();
         green.setColor(Color.GREEN);
+
+        yellow = new Material();
+        yellow.setColor(Color.YELLOW);
+        yellow.enableLighting(true);
+        yellow.setDiffuseMethod(new DiffuseMethod.Lambert());
+        yellow.setSpecularMethod(new SpecularMethod.Phong());
 
         red = new Material();
         red.setColor(Color.RED);
@@ -209,51 +216,64 @@ public class SceneRenderer extends RajawaliRenderer {
     protected void onRender(long ellapsedRealtime, double deltaTime) {
         synchronized (this){
             super.onRender(ellapsedRealtime, deltaTime);
-            // add routing cubes to scene graph if available
-            if (fillPath) {
-                for (Cube pathCube : pathCubes) {
-                    getCurrentScene().removeChild(pathCube);
-                }
-                pathCubes.clear();
+            if (renderPath) {
                 PathFinder finder = new PathFinder(floorPlan.getData());
                 CatmullRomCurve3D curvePath = new CatmullRomCurve3D();
                 try {
-                    List<Vector2> path = finder.findPathBetween(startPoint.getPosition(), endPoint.getPosition());
+                    for(Object3D obj:pathObjects){
+                        getCurrentScene().removeChild(obj);
+                    }
+                    pathObjects.clear();
+                    List<Vector2> path = finder.findPathBetween(startPoint, endPoint);
                     for (Vector2 vector2 : path) {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
                     Stack linePoints = new Stack();
+                    int numSegments = (int) Math.floor(curvePath.getLength(100) / 10);
+                    Log.d(TAG,"Calculated Number of segments: " + numSegments);
                     for (int i = 0; i < 100; i++) {
                         Vector3 v = new Vector3();
                         curvePath.calculatePoint(v,i / 100f);
                         linePoints.add(v);
+                        Sphere s = new Sphere(0.10f,20,20);
+                        s.setPosition(v);
+                        s.setMaterial(yellow);
+                        pathObjects.add(s);
                     }
-                    getCurrentScene().removeChild(line);
-                    line = new Line3D(linePoints, 10, Color.BLUE);
+                    Line3D line = new Line3D(linePoints, 10, Color.BLUE);
                     line.setMaterial(blue);
-                    getCurrentScene().addChild(line);
+                    pathObjects.add(line);
+                    for(Object3D obj:pathObjects){
+                        getCurrentScene().addChild(obj);
+                    }
                 } catch (Exception e) {
                     Log.e(TAG, "onRender: " + e.getMessage(), e);
                 } finally {
-                    fillPath = false;
+                    renderPath = false;
                 }
             }
         }
     }
 
+    public void setPath(Vector3 start, Vector3 end){
+        startPoint = start;
+        endPoint = end;
+        renderPath = true;
+    }
+
     public void setStartPoint(TangoPoseData currentPose, DeviceExtrinsics extrinsics) {
-        startPoint = ScenePoseCalculator.toOpenGlCameraPose(currentPose, extrinsics);
-        floorPlan.addPoint(startPoint.getPosition());
+        startPoint = ScenePoseCalculator.toOpenGlCameraPose(currentPose, extrinsics).getPosition();
+        floorPlan.addPoint(startPoint);
         if (startPoint != null && endPoint != null) {
-            fillPath = true;
+            renderPath = true;
         }
     }
 
     public void setEndPoint(TangoPoseData currentPose, DeviceExtrinsics extrinsics) {
-        endPoint = ScenePoseCalculator.toOpenGlCameraPose(currentPose, extrinsics);
-        floorPlan.addPoint(endPoint.getPosition());
+        endPoint = ScenePoseCalculator.toOpenGlCameraPose(currentPose, extrinsics).getPosition();
+        floorPlan.addPoint(endPoint);
         if (startPoint != null && endPoint != null) {
-            fillPath = true;
+            renderPath = true;
         }
     }
 
