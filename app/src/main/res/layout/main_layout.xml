@@ -114,15 +114,15 @@
     </FrameLayout>
 
     <FrameLayout
-        android:layout_width="250dp"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_gravity="start"
-        >
+        android:layout_gravity="start">
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/left_drawer"
             android:layout_width="250dp"
-            android:layout_height="match_parent"/>
+            android:layout_height="match_parent"
+            android:background="@color/cardview_dark_background"/>
 
     </FrameLayout>
 

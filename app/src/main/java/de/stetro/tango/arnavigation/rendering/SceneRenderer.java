@@ -68,8 +68,10 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderPath = false;
     private boolean renderPointCloud = true;
     private boolean renderFloorPlan = false;
+    private boolean renderSpheres = true;
+    private boolean renderLine = false;
     private Sphere PointOfInterest;
-    private boolean renderPOI;
+    private boolean renderPOI = false;
     private List<Sphere> POIs = new ArrayList<>();
     private PointLight light;
 
@@ -236,21 +238,24 @@ public class SceneRenderer extends RajawaliRenderer {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
                     Stack linePoints = new Stack();
-                    Log.d(TAG,"Calculated Number of segments: " + Math.floor(curvePath.getLength(100)));
+                    Log.d(TAG,"Calculated Number of segments: " + (int)Math.floor(curvePath.getLength(100)));
                     for (int i = 0; i < 100; i++) {
                         Vector3 v = new Vector3();
                         curvePath.calculatePoint(v,i / 100f);
                         linePoints.add(v);
-                        if(i%10 == 0){
+                        if(renderSpheres && i%10 == 0){
                             Sphere s = new Sphere(0.10f,20,20);
                             s.setPosition(v);
+                            s.setY(s.getY()+1.2);
                             s.setMaterial(yellow);
                             pathObjects.add(s);
                         }
                     }
                     Line3D line = new Line3D(linePoints, 10, Color.BLUE);
                     line.setMaterial(blue);
-                    pathObjects.add(line);
+                    if(renderLine){
+                        pathObjects.add(line);
+                    }
                     for(Object3D obj:pathObjects){
                         scene.addChild(obj);
                     }

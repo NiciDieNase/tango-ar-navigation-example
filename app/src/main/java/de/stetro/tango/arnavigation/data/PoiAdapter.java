@@ -20,9 +20,20 @@ import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
 public class PoiAdapter extends RecyclerView.Adapter<PoiAdapter.ViewHolder> {
 
 	List<PoiDAO> elements;
+	private OnPoiSelectedListener listener;
 
-	public PoiAdapter(List<PoiDAO> elements){
+	public void update(List<PoiDAO> elements) {
 		this.elements = elements;
+		this.notifyDataSetChanged();
+	}
+
+	public interface OnPoiSelectedListener{
+		public void onPoiSelected(PoiDAO poi);
+	}
+
+	public PoiAdapter(List<PoiDAO> elements,OnPoiSelectedListener listener){
+		this.elements = elements;
+		this.listener = listener;
 	}
 
 	@Override
@@ -45,14 +56,23 @@ public class PoiAdapter extends RecyclerView.Adapter<PoiAdapter.ViewHolder> {
 		return elements.size();
 	}
 
-	public class ViewHolder extends RecyclerView.ViewHolder {
+	public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
 		@BindView(R.id.text1) TextView text1;
 		@BindView(R.id.text2) TextView text2;
 
 		public ViewHolder(View itemView) {
 			super(itemView);
+			itemView.setOnClickListener(this);
 			ButterKnife.bind(this,itemView);
+		}
+
+		@Override
+		public void onClick(View view) {
+			PoiDAO poi = elements.get(getAdapterPosition());
+			if(listener != null){
+				listener.onPoiSelected(poi);
+			}
 		}
 	}
 }

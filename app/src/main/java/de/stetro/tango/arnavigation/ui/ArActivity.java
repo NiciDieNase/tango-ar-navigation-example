@@ -85,6 +85,8 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener {
 
 	private long environment_id;
+	private PoiAdapter poiAdapter;
+
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 
 
@@ -153,7 +155,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private boolean togglePointcloud = false;
 	private boolean toggleFloorplan = false;
 	private boolean newQuadtree = false;
-	private boolean updatePOIs;
+	private boolean updatePOIs = false;
 	private QuadTree newMapData;
 
 	private ActivityState currentState = ActivityState.undefined;
@@ -182,7 +184,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 		setContentView(R.layout.main_layout);
 		ButterKnife.bind(this);
-//		setSupportActionBar(toolbar);
+		setSupportActionBar(toolbar);
 
 		Bundle extras = getIntent().getExtras();
 
@@ -271,6 +273,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 					@Override
 					public void onSave(String title, String description) {
 						addPOI(p, title, description);
+						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class,
+								"environment_id = ?", String.valueOf(environment_id));
+						poiAdapter.update(poiDAOs);
 					}
 				}).show(getFragmentManager(),"saveDialog");
 			}
@@ -305,17 +310,29 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	private void setupDrawer(long environmentID) {
 		List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class, "environment_id = ?", String.valueOf(environmentID));
+		mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+		mRecyclerView.setHasFixedSize(true);
+		poiAdapter = new PoiAdapter(poiDAOs, new PoiAdapter.OnPoiSelectedListener() {
+			@Override
+			public void onPoiSelected(PoiDAO poi) {
+				double[] v = getCurrentPose().translation;
+				Vector3 start = new Vector3(v[0], v[2], -v[1]);
+				renderer.setPath(start, poi.getPosition());
+				renderer.showPOI(poi.getPosition());
+				mDrawerLayout.closeDrawer(Gravity.LEFT);
+			}
+		});
+		PoiAdapter adapter = poiAdapter;
+		mRecyclerView.setAdapter(adapter);
+		mDrawerToggle = new ActionBarDrawerToggle(
+				this, mDrawerLayout, R.string.drawer_open, R.string.drawer_close);
+		mDrawerLayout.addDrawerListener(mDrawerToggle);
+		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+		getSupportActionBar().setHomeButtonEnabled(true);
 		if(poiDAOs.size() > 0){
-			mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-			mRecyclerView.setHasFixedSize(true);
-			mRecyclerView.setAdapter(new PoiAdapter(poiDAOs));
-			mDrawerToggle = new ActionBarDrawerToggle(
-					this, mDrawerLayout, R.string.drawer_open, R.string.drawer_close);
-			mDrawerLayout.addDrawerListener(mDrawerToggle);
-			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-			getSupportActionBar().setHomeButtonEnabled(true);
 			mDrawerLayout.openDrawer(Gravity.LEFT);
 		} else {
+			// disable Drawer
 			Log.d(TAG,"No POIs");
 		}
 
@@ -662,15 +679,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE) {
 				if(!localized){
-					renderer.renderVirtualObjects(true);
+					Log.d(TAG,"Initial Localization");
+					onInitialLocalization();
 				}
 				localized = true;
-				runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-						hideProgressBar();
-					}
-				});
 			}
 		}
 
@@ -685,6 +697,22 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				mapper.mapPointCloud(pointCloud);
 			}
 		}
+	}
+
+	private void onInitialLocalization() {
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				hideProgressBar();
+			}
+		});
+		renderer.renderVirtualObjects(true);
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				mDrawerLayout.openDrawer(Gravity.LEFT);
+			}
+		});
 	}
 
 	private class OnSaveButtonClickListener implements View.OnClickListener {
@@ -794,11 +822,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						renderer.renderFloorPlan(!renderer.getRenderFloorPlan());
 						toggleFloorplan = false;
 					}
-					if(updatePOIs){
-						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
-						renderer.showPOIs(poiDAOs);
-						updatePOIs = false;
-					}
+//					if(updatePOIs){
+						// Show all POIs
+//						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
+//						renderer.showPOIs(poiDAOs);
+//						updatePOIs = false;
+//					}
 				} catch (TangoInvalidException e){
 					Log.d(TAG,e.getMessage(),e);
 				}
