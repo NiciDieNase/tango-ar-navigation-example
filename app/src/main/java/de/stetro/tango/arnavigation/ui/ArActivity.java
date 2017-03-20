@@ -10,15 +10,21 @@ import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -64,6 +70,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import de.stetro.tango.arnavigation.R;
 import de.stetro.tango.arnavigation.data.EnvironmentMapper;
+import de.stetro.tango.arnavigation.data.PoiAdapter;
 import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
 import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
@@ -78,9 +85,9 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener {
 
 	private long environment_id;
-
-
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
+
+
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
 			new TangoCoordinateFramePair(
@@ -100,36 +107,39 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE);
 	// This changes the Camera Texture and Intrinsics
 	protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
-
 	protected static final int INVALID_TEXTURE_ID = -1;
+
 	private static final String TAG = ArActivity.class.getSimpleName();
 	public static final boolean LEARNINGMODE_ENABLED = true;
 	public static final String KEY_ENVIRONMENT_ID = "environment_id";
 	protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 	protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
-
 	protected Tango tango;
+
 	protected TangoUx tangoUx;
 	protected TangoCameraIntrinsics intrinsics;
 	protected SceneRenderer renderer;
 	protected EnvironmentMapper mapper;
 	protected DeviceExtrinsics extrinsics;
-
 	private TangoPointCloudManager mPointCloudManager;
-	protected int connectedTextureId;
 
+	protected int connectedTextureId;
 	protected double rgbFrameTimestamp;
 
 	protected double cameraPoseTimestamp;
-	RajawaliSurfaceView mainSurfaceView;
 
+	RajawaliSurfaceView mainSurfaceView;
 	@BindView(R.id.toolbar) Toolbar toolbar;
+
 	@BindView(R.id.tango_ux_layout) TangoUxLayout uxLayout;
 	@BindView(R.id.map_view) MapView mapView;
 	@BindView(R.id.fab_pause) FloatingActionButton fabPause;
 	@BindView(R.id.fab_save) FloatingActionButton fabSave;
 	@BindView(R.id.fab_addpoi) FloatingActionButton fabAddPoi;
 	@BindView(R.id.progressSpinner) ProgressBar progressBar;
+	@BindView(R.id.drawer_layout) DrawerLayout mDrawerLayout;
+	@BindView(R.id.left_drawer) RecyclerView mRecyclerView;
+	private ActionBarDrawerToggle mDrawerToggle;
 	private int mDisplayRotation;
 
 	private TangoImageBuffer mCurrentImageBuffer;
@@ -172,7 +182,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 		setContentView(R.layout.main_layout);
 		ButterKnife.bind(this);
-		setSupportActionBar(toolbar);
+//		setSupportActionBar(toolbar);
 
 		Bundle extras = getIntent().getExtras();
 
@@ -287,6 +297,45 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		}
 
 		calculationTimes.setWindowSize(100);
+
+		if(environment_id != 0){
+			setupDrawer(environment_id);
+		}
+	}
+
+	private void setupDrawer(long environmentID) {
+		List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class, "environment_id = ?", String.valueOf(environmentID));
+		if(poiDAOs.size() > 0){
+			mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+			mRecyclerView.setHasFixedSize(true);
+			mRecyclerView.setAdapter(new PoiAdapter(poiDAOs));
+			mDrawerToggle = new ActionBarDrawerToggle(
+					this, mDrawerLayout, R.string.drawer_open, R.string.drawer_close);
+			mDrawerLayout.addDrawerListener(mDrawerToggle);
+			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+			getSupportActionBar().setHomeButtonEnabled(true);
+			mDrawerLayout.openDrawer(Gravity.LEFT);
+		} else {
+			Log.d(TAG,"No POIs");
+		}
+
+	}
+
+
+	@Override
+	protected void onPostCreate(@Nullable Bundle savedInstanceState) {
+		super.onPostCreate(savedInstanceState);
+		if(mDrawerToggle != null){
+			mDrawerToggle.syncState();
+		}
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		if(mDrawerToggle != null){
+			mDrawerToggle.onConfigurationChanged(newConfig);
+		}
 	}
 
 	private void addPOI(float[] p, String name, String description) {
@@ -380,6 +429,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
+		if(mDrawerToggle != null && mDrawerToggle.onOptionsItemSelected(item)){
+			return true;
+		}
 		switch (item.getItemId()) {
 			case R.id.set_start_point:
 				renderer.setStartPoint(getCurrentPose(), extrinsics);

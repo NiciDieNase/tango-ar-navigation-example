@@ -15,4 +15,6 @@
     <string name="toogle_floor_plan">Toogle Floor Plan</string>
     <string name="place_poi">Tap where to place POI</string>
     <string name="clear_pois">Clear POIs</string>
+    <string name="drawer_open">Drawer open</string>
+    <string name="drawer_close">Drawer close</string>
 </resources>
