@@ -82,11 +82,17 @@ import de.stetro.tango.arnavigation.ui.views.MapView;
 
 import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchPosition;
 
-public class ArActivity extends AppCompatActivity implements View.OnTouchListener, EnvironmentSelectionListener {
+public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
+		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
 	private long environment_id;
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;
+
+	@Override
+	public void onRoutingError(String msg) {
+		Snackbar.make(uxLayout,msg,Snackbar.LENGTH_SHORT).show();
+	}
 
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 
@@ -223,6 +229,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			currentState = ActivityState.mapping;
 			fabAddPoi.hide();
 		}
+		renderer.setListerner(this);
 		mapper.setListener(new EnvironmentMapper.OnMapUpdateListener() {
 			@Override
 			public void onMapUpdate(QuadTree data) {

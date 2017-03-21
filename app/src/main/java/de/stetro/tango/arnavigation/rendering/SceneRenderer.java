@@ -50,6 +50,7 @@ import java.util.Stack;
 import javax.microedition.khronos.opengles.GL10;
 
 import de.stetro.tango.arnavigation.R;
+import de.stetro.tango.arnavigation.data.NoPathException;
 import de.stetro.tango.arnavigation.data.PathFinder;
 import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
@@ -61,7 +62,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private static final String TAG = SceneRenderer.class.getSimpleName();
     private static final int MAX_NUMBER_OF_POINTS = 60000;
     private static final double CLEAR_DISTANCE = .8;
-    private final MediaPlayer player;
+    private MediaPlayer player = MediaPlayer.create(mContext, R.raw.smw_coin);
     private QuadTree data;
     // Rajawali texture used to render the Tango color camera
     private ATexture mTangoCameraTexture;
@@ -95,6 +96,11 @@ public class SceneRenderer extends RajawaliRenderer {
     private List<Animation3D> pathAnimations = new ArrayList<>();
     private LoaderOBJ objParser;
 
+    private OnRoutingErrorListener listerner;
+
+    public interface OnRoutingErrorListener{
+        void onRoutingError(String msg);
+    }
     public SceneRenderer(Context context) {
         super(context);
         data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
@@ -354,8 +360,12 @@ public class SceneRenderer extends RajawaliRenderer {
                     for(Animation3D anim: pathAnimations){
                         anim.play();
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, "onRender: " + e.getMessage(), e);
+                } catch (NoPathException e){
+                    if(listerner != null){
+                        listerner.onRoutingError(e.getMessage());
+                    } else {
+                        e.printStackTrace();
+                    }
                 } finally {
                     renderPath = false;
                 }

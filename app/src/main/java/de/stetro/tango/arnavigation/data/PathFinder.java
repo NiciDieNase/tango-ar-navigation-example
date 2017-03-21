@@ -41,10 +41,10 @@ public class PathFinder {
      * @return list of way points (empty if not available)
      * @throws Exception when not path is found or the search space is not available
      */
-    public List<Vector2> findPathBetween(Vector2 from, Vector2 to) throws Exception {
+    public List<Vector2> findPathBetween(Vector2 from, Vector2 to) throws NoPathException {
         resetSearchAlgorithm();
         if (!quadTree.isFilled(from) || !quadTree.isFilled(to)) {
-            throw new Exception("fields are not visited in quadtree");
+            throw new NoPathException("fields are not visited in quadtree");
         }
         from = quadTree.rasterize(from);
         to = quadTree.rasterize(to);
@@ -63,7 +63,7 @@ public class PathFinder {
             closedList.add(currentNode);
             expandNode(currentNode);
         } while (!openList.isEmpty());
-        throw new Exception("no path found");
+        throw new NoPathException("no path found");
     }
 
     /**
@@ -127,7 +127,7 @@ public class PathFinder {
         return g + h;
     }
 
-    public List<Vector2> findPathBetween(Vector3 a, Vector3 b) throws Exception {
+    public List<Vector2> findPathBetween(Vector3 a, Vector3 b) throws NoPathException {
         return findPathBetween(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
     }
 
