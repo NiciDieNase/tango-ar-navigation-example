@@ -5,7 +5,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 
 import com.google.atap.tangoservice.TangoCameraIntrinsics;
 import com.google.atap.tangoservice.TangoPointCloudData;
@@ -16,9 +16,13 @@ import com.projecttango.rajawali.Pose;
 import com.projecttango.rajawali.ScenePoseCalculator;
 
 import org.rajawali3d.Object3D;
-import org.rajawali3d.animation.RotateAnimation3D;
+import org.rajawali3d.animation.Animation;
+import org.rajawali3d.animation.Animation3D;
+import org.rajawali3d.animation.RotateOnAxisAnimation;
 import org.rajawali3d.curves.CatmullRomCurve3D;
 import org.rajawali3d.lights.PointLight;
+import org.rajawali3d.loader.LoaderOBJ;
+import org.rajawali3d.loader.ParsingException;
 import org.rajawali3d.materials.Material;
 import org.rajawali3d.materials.methods.DiffuseMethod;
 import org.rajawali3d.materials.methods.SpecularMethod;
@@ -53,6 +57,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private static final int QUAD_TREE_RANGE = 120;
     private static final String TAG = SceneRenderer.class.getSimpleName();
     private static final int MAX_NUMBER_OF_POINTS = 60000;
+    private static final double CLEAR_DISTANCE = .5;
     private QuadTree data;
     // Rajawali texture used to render the Tango color camera
     private ATexture mTangoCameraTexture;
@@ -73,14 +78,18 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderPath = false;
     private boolean renderPointCloud = true;
     private boolean renderFloorPlan = false;
-    private boolean renderSpheres = true;
+    private boolean renderSpheres = false;
+    private boolean renderCoins = true;
     private boolean renderLine = true;
     private Cylinder PointOfInterest;
     private boolean renderPOI = false;
     private List<Sphere> POIs = new ArrayList<>();
     private PointLight light;
     private double pathHeight;
-    private RotateAnimation3D anim;
+    private RotateOnAxisAnimation anim;
+    private Object3D mCoin;
+    private List<Animation3D> pathAnimations = new ArrayList<>();
+    private LoaderOBJ objParser;
 
     public SceneRenderer(Context context) {
         super(context);
@@ -163,6 +172,18 @@ public class SceneRenderer extends RajawaliRenderer {
         PointOfInterest.setMaterial(red);
         PointOfInterest.setDoubleSided(true);
 
+        objParser = new LoaderOBJ(mContext.getResources(),mTextureManager,R.raw.coin_n5_obj);
+        try {
+            objParser.parse();
+            mCoin = objParser.getParsedObject();
+            mCoin.setScale(10.0);
+            mCoin.setDoubleSided(true);
+            mCoin.setVisible(false);
+            getCurrentScene().addChild(mCoin);
+        } catch (ParsingException e) {
+            e.printStackTrace();
+        }
+
         Texture background = new Texture("background", R.drawable.background);
 //        Bitmap bitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.background_1126920_1280);
 //        mTextureManager = TextureManager.getInstance();
@@ -174,12 +195,11 @@ public class SceneRenderer extends RajawaliRenderer {
         }
         getCurrentScene().addChild(PointOfInterest);
 
-        anim = new RotateAnimation3D(0.0,360.0,0.0);
+        anim = new RotateOnAxisAnimation(Vector3.Axis.Y,360.0);
+        anim.setInterpolator(new LinearInterpolator());
         anim.setDurationMilliseconds(5000);
-//        anim.setRepeatMode(Animation.RepeatMode.INFINITE);
-        anim.setTransformable3D(PointOfInterest);
-        anim.setRepeatCount(200);
-        anim.setInterpolator(new AccelerateDecelerateInterpolator());
+        anim.setRepeatMode(Animation.RepeatMode.INFINITE);
+        anim.setTransformable3D(mCoin);
         getCurrentScene().registerAnimation(anim);
     }
 
@@ -193,11 +213,21 @@ public class SceneRenderer extends RajawaliRenderer {
         Pose cameraPose = ScenePoseCalculator.toOpenGlCameraPose(devicePose, extrinsics);
         getCurrentCamera().setRotation(cameraPose.getOrientation());
         getCurrentCamera().setPosition(cameraPose.getPosition());
-        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
+//        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
+        checkPathObjects(cameraPose.getPosition());
         Vector3 position = cameraPose.getPosition();
-        position.y = 3.0;
+        position.y = position.y+.3;
         light.setPosition(position);
 //        floorPlan.forceAdd(cameraPose.getPosition());
+    }
+
+    private void checkPathObjects(Vector3 position) {
+        for(Object3D obj: pathObjects){
+            if(obj.getPosition().distanceTo(position) < CLEAR_DISTANCE){
+                getCurrentScene().removeChild(obj);
+
+            }
+        }
     }
 
     /**
@@ -261,6 +291,10 @@ public class SceneRenderer extends RajawaliRenderer {
                         scene.removeChild(obj);
                     }
                     pathObjects.clear();
+                    for(Animation3D anim:pathAnimations){
+                        scene.unregisterAnimation(anim);
+                    }
+                    pathAnimations.clear();
                     List<Vector2> path = finder.findPathBetween(startPoint, endPoint);
                     for (Vector2 vector2 : path) {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
@@ -274,9 +308,24 @@ public class SceneRenderer extends RajawaliRenderer {
                         if(renderSpheres && i%10 == 0){
                             Sphere s = new Sphere(0.10f,20,20);
                             s.setPosition(v);
-                            s.setY(pathHeight);
+                            s.setY(pathHeight-.3);
                             s.setMaterial(yellow);
                             pathObjects.add(s);
+                        }
+                        if(renderCoins && i%10 == 0){
+                            Object3D coin = mCoin.clone(true,true);
+                            coin.setPosition(v);
+                            coin.setScale(10.0);
+                            coin.setVisible(true);
+                            coin.setY(pathHeight);
+                            pathObjects.add(coin);
+                            RotateOnAxisAnimation anim = new RotateOnAxisAnimation(Vector3.Axis.Y, 360.0);
+                            anim.setInterpolator(new LinearInterpolator());
+                            anim.setDurationMilliseconds(5000);
+                            anim.setRepeatMode(Animation.RepeatMode.INFINITE);
+                            anim.setTransformable3D(coin);
+                            getCurrentScene().registerAnimation(anim);
+                            pathAnimations.add(anim);
                         }
                     }
                     Line3D line = new Line3D(linePoints, 10, Color.BLUE);
@@ -286,6 +335,9 @@ public class SceneRenderer extends RajawaliRenderer {
                     }
                     for(Object3D obj:pathObjects){
                         scene.addChild(obj);
+                    }
+                    for(Animation3D anim: pathAnimations){
+                        anim.play();
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "onRender: " + e.getMessage(), e);
@@ -390,14 +442,16 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void showPOI(Vector3 position){
-        PointOfInterest.setPosition(position);
-        PointOfInterest.setVisible(true);
-        anim.reset();
+//        PointOfInterest.setPosition(position);
+//        PointOfInterest.setVisible(true);
+        mCoin.setPosition(position);
+        mCoin.setVisible(true);
         anim.play();
     }
 
     public void hidePOI(){
-        PointOfInterest.setVisible(false);
+//        PointOfInterest.setVisible(false);
+        mCoin.setVisible(false);
     }
 
     public void showPOIs(List<PoiDAO> poiDAOs) {
