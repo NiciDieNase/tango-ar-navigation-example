@@ -5,7 +5,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.animation.LinearInterpolator;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
 import com.google.atap.tangoservice.TangoCameraIntrinsics;
 import com.google.atap.tangoservice.TangoPointCloudData;
@@ -16,7 +16,6 @@ import com.projecttango.rajawali.Pose;
 import com.projecttango.rajawali.ScenePoseCalculator;
 
 import org.rajawali3d.Object3D;
-import org.rajawali3d.animation.Animation;
 import org.rajawali3d.animation.RotateAnimation3D;
 import org.rajawali3d.curves.CatmullRomCurve3D;
 import org.rajawali3d.lights.PointLight;
@@ -25,6 +24,7 @@ import org.rajawali3d.materials.methods.DiffuseMethod;
 import org.rajawali3d.materials.methods.SpecularMethod;
 import org.rajawali3d.materials.textures.ATexture;
 import org.rajawali3d.materials.textures.StreamingTexture;
+import org.rajawali3d.materials.textures.Texture;
 import org.rajawali3d.math.Matrix4;
 import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector2;
@@ -42,6 +42,7 @@ import java.util.Stack;
 
 import javax.microedition.khronos.opengles.GL10;
 
+import de.stetro.tango.arnavigation.R;
 import de.stetro.tango.arnavigation.data.PathFinder;
 import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
@@ -73,7 +74,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderPointCloud = true;
     private boolean renderFloorPlan = false;
     private boolean renderSpheres = true;
-    private boolean renderLine = false;
+    private boolean renderLine = true;
     private Cylinder PointOfInterest;
     private boolean renderPOI = false;
     private List<Sphere> POIs = new ArrayList<>();
@@ -125,6 +126,8 @@ public class SceneRenderer extends RajawaliRenderer {
         yellow = new Material();
         yellow.setColor(Color.YELLOW);
         yellow.enableLighting(true);
+        yellow.setColorInfluence(1.0f);
+        yellow.setAmbientColor(Color.YELLOW);
         yellow.setDiffuseMethod(new DiffuseMethod.Lambert());
         yellow.setSpecularMethod(new SpecularMethod.Phong());
 
@@ -158,15 +161,26 @@ public class SceneRenderer extends RajawaliRenderer {
         PointOfInterest = new Cylinder(.10f,.20f, 20,20);
         PointOfInterest.setVisible(false);
         PointOfInterest.setMaterial(red);
+        PointOfInterest.setDoubleSided(true);
+
+        Texture background = new Texture("background", R.drawable.background);
+//        Bitmap bitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.background_1126920_1280);
+//        mTextureManager = TextureManager.getInstance();
+        try {
+            red.addTexture(background);
+            red.setColorInfluence(0.0f);
+        } catch (ATexture.TextureException e) {
+            e.printStackTrace();
+        }
         getCurrentScene().addChild(PointOfInterest);
 
         anim = new RotateAnimation3D(0.0,360.0,0.0);
-        anim.setDurationMilliseconds(10000);
-        anim.setRepeatMode(Animation.RepeatMode.INFINITE);
+        anim.setDurationMilliseconds(5000);
+//        anim.setRepeatMode(Animation.RepeatMode.INFINITE);
         anim.setTransformable3D(PointOfInterest);
-        anim.setInterpolator(new LinearInterpolator());
+        anim.setRepeatCount(200);
+        anim.setInterpolator(new AccelerateDecelerateInterpolator());
         getCurrentScene().registerAnimation(anim);
-        anim.play();
     }
 
     /**
@@ -378,6 +392,8 @@ public class SceneRenderer extends RajawaliRenderer {
     public void showPOI(Vector3 position){
         PointOfInterest.setPosition(position);
         PointOfInterest.setVisible(true);
+        anim.reset();
+        anim.play();
     }
 
     public void hidePOI(){
