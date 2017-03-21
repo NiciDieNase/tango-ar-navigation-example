@@ -82,7 +82,7 @@ public class PathFinder {
         neighbours[6] = new Node(currentNode.x, currentNode.y + unit);
         neighbours[7] = new Node(currentNode.x, currentNode.y - unit);
         for (Node neighbour : neighbours) {
-            if (closedList.contains(neighbour) || !quadTree.isFilled(new Vector2(neighbour.x, neighbour.y))) {
+            if (closedList.contains(neighbour) || !quadTree.isFilled_(new Vector2(neighbour.x, neighbour.y))) {
                 continue;
             }
             neighbour.parent = currentNode;

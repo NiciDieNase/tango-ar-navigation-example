@@ -283,10 +283,22 @@ public class QuadTree implements Serializable, Cloneable{
         }
     }
 
+
     public boolean isFilled(Vector2 to) {
         if (outOfRange(to)) {
             return false;
         } else if (depth == 0 || filled) {
+            return filled;
+        } else {
+            int index = getChildIndex(to);
+            return children[index] != null && children[index].isFilled(to);
+        }
+    }
+
+    public boolean isFilled_(Vector2 to) {
+        if (outOfRange(to)) {
+            return false;
+        } else if (depth == 0) {
             return filled;
         } else {
             int index = getChildIndex(to);
