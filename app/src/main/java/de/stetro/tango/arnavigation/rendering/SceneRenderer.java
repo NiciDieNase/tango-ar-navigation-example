@@ -19,7 +19,9 @@ import com.projecttango.rajawali.ScenePoseCalculator;
 import org.rajawali3d.Object3D;
 import org.rajawali3d.animation.Animation;
 import org.rajawali3d.animation.Animation3D;
+import org.rajawali3d.animation.IAnimationListener;
 import org.rajawali3d.animation.RotateOnAxisAnimation;
+import org.rajawali3d.animation.TranslateAnimation3D;
 import org.rajawali3d.curves.CatmullRomCurve3D;
 import org.rajawali3d.lights.PointLight;
 import org.rajawali3d.loader.LoaderOBJ;
@@ -96,13 +98,11 @@ public class SceneRenderer extends RajawaliRenderer {
     public SceneRenderer(Context context) {
         super(context);
         data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
-        player = MediaPlayer.create(mContext,R.raw.smw_coin);
     }
 
     public SceneRenderer(Context context, QuadTree data){
         super(context);
         this.data = data;
-        player = MediaPlayer.create(mContext,R.raw.smw_coin);
     }
 
     public void setQuadTree(QuadTree data){
@@ -226,12 +226,21 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     private void checkPathObjects(Vector3 position) {
-        for(Object3D obj: pathObjects){
+        final List<Object3D> removeElements = new ArrayList<>();
+        for(final Object3D obj: pathObjects){
             if(obj.getPosition().distanceTo(position) < CLEAR_DISTANCE){
-                getCurrentScene().removeChild(obj);
-                player.start();
+                Vector3 target = obj.getPosition().clone();
+                target.y = target.y + 5;
+                Animation3D anim = new TranslateAnimation3D(obj.getPosition(),target);
+                anim.setTransformable3D(obj);
+                anim.setDurationMilliseconds(4000);
+                anim.registerListener(new DeletAfterAnimationListener(obj));
+                removeElements.add(obj);
+                getCurrentScene().registerAnimation(anim);
+                anim.play();
             }
         }
+        pathObjects.removeAll(removeElements);
     }
 
     /**
@@ -304,19 +313,21 @@ public class SceneRenderer extends RajawaliRenderer {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
                     Stack linePoints = new Stack();
-                    Log.d(TAG,"Calculated Number of segments: " + (int)Math.floor(curvePath.getLength(100)));
+                    double v1 = 0.8 / (curvePath.getLength(100)/100) ;
+                    Log.d(TAG,"Calculated Number of segments: " + v1);
+                    int v2 = (int)v1;
                     for (int i = 0; i < 100; i++) {
                         Vector3 v = new Vector3();
                         curvePath.calculatePoint(v,i / 100f);
                         linePoints.add(v);
-                        if(renderSpheres && i%10 == 0){
+                        if(renderSpheres && i%v2 == 0){
                             Sphere s = new Sphere(0.10f,20,20);
                             s.setPosition(v);
                             s.setY(pathHeight-.3);
                             s.setMaterial(yellow);
                             pathObjects.add(s);
                         }
-                        if(renderCoins && i%10 == 0){
+                        if(renderCoins && i%v2 == 0){
                             Object3D coin = mCoin.clone(true,true);
                             coin.setPosition(v);
                             coin.setScale(10.0);
@@ -476,5 +487,39 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void setPathHeight(double pathHeight) {
         this.pathHeight = pathHeight;
+    }
+
+    private class DeletAfterAnimationListener implements IAnimationListener {
+        private Object3D obj;
+        private MediaPlayer player;
+
+        public DeletAfterAnimationListener(Object3D obj) {
+            this.obj = obj;
+        }
+
+        @Override
+        public void onAnimationEnd(Animation animation) {
+            getCurrentScene().removeChild(obj);
+        }
+
+        @Override
+        public void onAnimationRepeat(Animation animation) {
+
+        }
+
+        @Override
+        public void onAnimationStart(Animation animation) {
+            player = MediaPlayer.create(mContext, R.raw.smw_coin);
+            player.start();
+        }
+
+        @Override
+        public void onAnimationUpdate(Animation animation, double interpolatedTime) {
+
+        }
+    }
+
+    public void setListerner(OnRoutingErrorListener listerner) {
+        this.listerner = listerner;
     }
 }
