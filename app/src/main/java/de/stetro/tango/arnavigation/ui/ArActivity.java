@@ -86,6 +86,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	private long environment_id;
 	private PoiAdapter poiAdapter;
+	private PoiAdapter mAdapter;
 
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 
@@ -305,6 +306,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 		if(environment_id != 0){
 			setupDrawer(environment_id);
+		} else {
+			mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
 		}
 	}
 
@@ -318,25 +321,18 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				double[] v = getCurrentPose().translation;
 				Vector3 start = new Vector3(v[0], v[2], -v[1]);
 				renderer.setPath(start, poi.getPosition());
-				renderer.setPathHeight(v[2]-0.3);
+				renderer.setPathHeight(v[2]-0.5);
 				renderer.showPOI(poi.getPosition());
 				mDrawerLayout.closeDrawer(Gravity.LEFT);
 			}
 		});
-		PoiAdapter adapter = poiAdapter;
-		mRecyclerView.setAdapter(adapter);
+		mAdapter = poiAdapter;
+		mRecyclerView.setAdapter(mAdapter);
 		mDrawerToggle = new ActionBarDrawerToggle(
 				this, mDrawerLayout, R.string.drawer_open, R.string.drawer_close);
 		mDrawerLayout.addDrawerListener(mDrawerToggle);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		getSupportActionBar().setHomeButtonEnabled(true);
-		if(poiDAOs.size() > 0){
-			mDrawerLayout.openDrawer(Gravity.LEFT);
-		} else {
-			// disable Drawer
-			Log.d(TAG,"No POIs");
-		}
-
 	}
 
 
@@ -701,17 +697,14 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	}
 
 	private void onInitialLocalization() {
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				hideProgressBar();
-			}
-		});
 		renderer.renderVirtualObjects(true);
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				mDrawerLayout.openDrawer(Gravity.LEFT);
+				hideProgressBar();
+				if(mAdapter != null && mAdapter.getItemCount() > 0){
+					mDrawerLayout.openDrawer(Gravity.LEFT);
+				}
 			}
 		});
 	}
