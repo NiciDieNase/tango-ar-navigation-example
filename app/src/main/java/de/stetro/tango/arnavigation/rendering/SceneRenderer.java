@@ -88,7 +88,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderLine = true;
     private Cylinder PointOfInterest;
     private boolean renderPOI = false;
-    private List<Sphere> POIs = new ArrayList<>();
+    private List<Object3D> POIs = new ArrayList<>();
     private PointLight light;
     private double pathHeight;
     private RotateOnAxisAnimation anim;
@@ -340,12 +340,7 @@ public class SceneRenderer extends RajawaliRenderer {
                             coin.setVisible(true);
                             coin.setY(pathHeight);
                             pathObjects.add(coin);
-                            RotateOnAxisAnimation anim = new RotateOnAxisAnimation(Vector3.Axis.Y, 360.0);
-                            anim.setInterpolator(new LinearInterpolator());
-                            anim.setDurationMilliseconds(5000);
-                            anim.setRepeatMode(Animation.RepeatMode.INFINITE);
-                            anim.setTransformable3D(coin);
-                            getCurrentScene().registerAnimation(anim);
+                            Animation3D anim = setRotateAnimation(coin);
                             pathAnimations.add(anim);
                         }
                     }
@@ -371,6 +366,17 @@ public class SceneRenderer extends RajawaliRenderer {
                 }
             }
         }
+    }
+
+    @NonNull
+    private Animation3D setRotateAnimation(Object3D coin) {
+        RotateOnAxisAnimation anim = new RotateOnAxisAnimation(Vector3.Axis.Y, 360.0);
+        anim.setInterpolator(new LinearInterpolator());
+        anim.setDurationMilliseconds(5000);
+        anim.setRepeatMode(Animation.RepeatMode.INFINITE);
+        anim.setTransformable3D(coin);
+        getCurrentScene().registerAnimation(anim);
+        return anim;
     }
 
     public void setPath(Vector3 start, Vector3 end){
@@ -481,16 +487,28 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void showPOIs(List<PoiDAO> poiDAOs) {
         RajawaliScene scene = getCurrentScene();
-        for(Sphere s: POIs){
-            scene.removeChild(s);
+        for(Object3D obj: POIs){
+            scene.removeChild(obj);
         }
         POIs.clear();
         for(PoiDAO p:poiDAOs){
-            Sphere sphere = new Sphere(.3f, 20, 20);
-            sphere.setPosition(p.getPosition());
-            sphere.setMaterial(red);
-            scene.addChild(sphere);
-            POIs.add(sphere);
+            if(mCoin != null){
+                Object3D coin = mCoin.clone(true, true);
+                coin.setPosition(p.getPosition());
+                coin.setScale(10.0);
+                coin.setVisible(true);
+                scene.addChild(coin);
+                Animation3D anim = setRotateAnimation(coin);
+                scene.registerAnimation(anim);
+                anim.play();
+                POIs.add(coin);
+            } else {
+                Sphere sphere = new Sphere(.3f, 20, 20);
+                sphere.setPosition(p.getPosition());
+                sphere.setMaterial(red);
+                scene.addChild(sphere);
+                POIs.add(sphere);
+            }
         }
 
     }
