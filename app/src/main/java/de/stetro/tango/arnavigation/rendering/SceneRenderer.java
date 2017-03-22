@@ -4,6 +4,7 @@ package de.stetro.tango.arnavigation.rendering;
 import android.content.Context;
 import android.graphics.Color;
 import android.media.MediaPlayer;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.animation.LinearInterpolator;
@@ -99,7 +100,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private OnRoutingErrorListener listerner;
 
     public interface OnRoutingErrorListener{
-        void onRoutingError(String msg);
+        void onRoutingError(int resId);
     }
     public SceneRenderer(Context context) {
         super(context);
@@ -195,8 +196,6 @@ public class SceneRenderer extends RajawaliRenderer {
         }
 
         Texture background = new Texture("background", R.drawable.background);
-//        Bitmap bitmap = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.background_1126920_1280);
-//        mTextureManager = TextureManager.getInstance();
         try {
             red.addTexture(background);
             red.setColorInfluence(0.0f);
@@ -223,7 +222,7 @@ public class SceneRenderer extends RajawaliRenderer {
         Pose cameraPose = ScenePoseCalculator.toOpenGlCameraPose(devicePose, extrinsics);
         getCurrentCamera().setRotation(cameraPose.getOrientation());
         getCurrentCamera().setPosition(cameraPose.getPosition());
-//        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
+        floorPlan.setTrajectoryPosition(cameraPose.getPosition());
         checkPathObjects(cameraPose.getPosition());
         Vector3 position = cameraPose.getPosition();
         position.y = position.y+.3;
@@ -305,6 +304,7 @@ public class SceneRenderer extends RajawaliRenderer {
                 PathFinder finder = new PathFinder(floorPlan.getData());
                 CatmullRomCurve3D curvePath = new CatmullRomCurve3D();
                 try {
+                    // Remove old objects
                     RajawaliScene scene = getCurrentScene();
                     for(Object3D obj:pathObjects){
                         scene.removeChild(obj);
@@ -314,14 +314,19 @@ public class SceneRenderer extends RajawaliRenderer {
                         scene.unregisterAnimation(anim);
                     }
                     pathAnimations.clear();
+
+                    // Calculate Path and get intermediate Points
                     List<Vector2> path = finder.findPathBetween(startPoint, endPoint);
                     for (Vector2 vector2 : path) {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
-                    Stack linePoints = new Stack();
+                    // Calculate distance between Objects placed on path
                     double v1 = 0.8 / (curvePath.getLength(100)/100) ;
                     Log.d(TAG,"Calculated Number of segments: " + v1);
                     int v2 = (int)v1;
+
+                    // Add objects to mark Path
+                    Stack linePoints = new Stack();
                     for (int i = 0; i < 100; i++) {
                         Vector3 v = new Vector3();
                         curvePath.calculatePoint(v,i / 100f);
@@ -349,6 +354,7 @@ public class SceneRenderer extends RajawaliRenderer {
                     if(renderLine){
                         pathObjects.add(line);
                     }
+                    // Add Objects and start Animations
                     for(Object3D obj:pathObjects){
                         scene.addChild(obj);
                     }
@@ -357,7 +363,7 @@ public class SceneRenderer extends RajawaliRenderer {
                     }
                 } catch (NoPathException e){
                     if(listerner != null){
-                        listerner.onRoutingError(e.getMessage());
+                        listerner.onRoutingError(R.string.routing_error);
                     } else {
                         e.printStackTrace();
                     }
@@ -382,6 +388,8 @@ public class SceneRenderer extends RajawaliRenderer {
     public void setPath(Vector3 start, Vector3 end){
         startPoint = start;
         endPoint = end;
+        floorPlan.addPoint(start);
+        floorPlan.addPoint(end);
         renderPath = true;
     }
 

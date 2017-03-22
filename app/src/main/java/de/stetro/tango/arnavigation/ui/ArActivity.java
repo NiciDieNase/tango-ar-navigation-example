@@ -31,7 +31,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import com.google.atap.tango.ux.TangoUx;
 import com.google.atap.tango.ux.TangoUxLayout;
@@ -89,13 +88,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;
 
-	@Override
-	public void onRoutingError(String msg) {
-		Snackbar.make(uxLayout,msg,Snackbar.LENGTH_SHORT).show();
-	}
-
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
-
 
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
@@ -193,15 +186,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		ButterKnife.bind(this);
 		setSupportActionBar(toolbar);
 
+		setupSurfaceView();
+
 		Bundle extras = getIntent().getExtras();
-
-		mainSurfaceView = new RajawaliSurfaceView(this);
-		View v1 = findViewById(R.id.gl_main_surface_view);
-		ViewGroup parent = (ViewGroup) v1.getParent();
-		int index = parent.indexOfChild(v1);
-		parent.removeView(v1);
-		parent.addView(mainSurfaceView, index);
-
 		if (extras != null) {
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
@@ -251,43 +238,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		mapView.setFloorPlanData(renderer.getFloorPlanData());
 		mainSurfaceView.setOnTouchListener(this);
 		mPointCloudManager = new TangoPointCloudManager();
-		fabPause.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				capturePointcloud = !capturePointcloud;
-				if (capturePointcloud) {
-					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_pause));
-					currentState = ActivityState.mapping;
-					renderer.renderSphere(false);
-				} else {
-					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
-					currentState = ActivityState.editing;
-//					renderer.renderSphere(true);
-				}
-			}
-		});
+
+		setupFABs();
 
 		startActivityForResult(Tango.getRequestPermissionIntent(Tango.PERMISSIONTYPE_ADF_LOAD_SAVE),
 				Tango.TANGO_INTENT_ACTIVITYCODE);
-
-		fabSave.setOnClickListener(new OnSaveButtonClickListener());
-
-		fabAddPoi.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				TangoPoseData poseData = getCurrentPose();
-				final float[] p = poseData.getTranslationAsFloats();
-				new SaveDialogFragment().setListener(new SaveDialogFragment.OnSaveListener() {
-					@Override
-					public void onSave(String title, String description) {
-						addPOI(p, title, description);
-						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class,
-								"environment_id = ?", String.valueOf(environment_id));
-						poiAdapter.update(poiDAOs);
-					}
-				}).show(getFragmentManager(),"saveDialog");
-			}
-		});
 
 		DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
 		if (displayManager != null) {
@@ -316,6 +271,52 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		} else {
 			mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
 		}
+	}
+
+	private void setupSurfaceView() {
+		mainSurfaceView = new RajawaliSurfaceView(this);
+		View glSurfaceView = findViewById(R.id.gl_main_surface_view);
+		ViewGroup parent = (ViewGroup) glSurfaceView.getParent();
+		int index = parent.indexOfChild(glSurfaceView);
+		parent.removeView(glSurfaceView);
+		parent.addView(mainSurfaceView, index);
+	}
+
+	private void setupFABs() {
+		fabPause.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				capturePointcloud = !capturePointcloud;
+				if (capturePointcloud) {
+					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_pause));
+					currentState = ActivityState.mapping;
+					renderer.renderSphere(false);
+				} else {
+					fabPause.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_media_play));
+					currentState = ActivityState.editing;
+//					renderer.renderSphere(true);
+				}
+			}
+		});
+
+		fabSave.setOnClickListener(new OnSaveButtonClickListener());
+
+		fabAddPoi.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				TangoPoseData poseData = getCurrentPose();
+				final float[] p = poseData.getTranslationAsFloats();
+				new SaveDialogFragment().setListener(new SaveDialogFragment.OnSaveListener() {
+					@Override
+					public void onSave(String title, String description) {
+						addPOI(p, title, description);
+						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class,
+								"environment_id = ?", String.valueOf(environment_id));
+						poiAdapter.update(poiDAOs);
+					}
+				}).show(getFragmentManager(),"saveDialog");
+			}
+		});
 	}
 
 	private void setupDrawer(long environmentID) {
@@ -357,57 +358,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		if(mDrawerToggle != null){
 			mDrawerToggle.onConfigurationChanged(newConfig);
 		}
-	}
-
-	private void addPOI(float[] p, String name, String description) {
-		PoiDAO poi = new PoiDAO(environment_id, name, description, p[0], p[1], p[2]);
-		poi.save();
-		updatePOIs = true;
-	}
-
-	private void loadEnvironment(Long id) {
-		Intent i = new Intent(this, ArActivity.class);
-		i.putExtra(KEY_ENVIRONMENT_ID, id);
-		startActivity(i);
-		ArActivity.this.finish();
-	}
-
-	private void saveToFile(QuadTree floorPlanData, String name) {
-		FileOutputStream fout;
-		ObjectOutputStream oos;
-		try {
-			fout = openFileOutput(name + ".tree", Context.MODE_PRIVATE);
-			oos = new ObjectOutputStream(fout);
-			oos.writeObject(floorPlanData);
-			Log.d(TAG, fout.getFD().toString());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private QuadTree loadFromFile(String name) {
-		FileInputStream is;
-		ObjectInputStream os;
-		QuadTree tree = null;
-		try {
-			is = openFileInput(name + ".tree");
-			os = new ObjectInputStream(is);
-			tree = (QuadTree) os.readObject();
-		} catch (IOException | ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-		return tree;
-	}
-
-	private void hideProgressBar() {
-		progressBar.setVisibility(View.INVISIBLE);
-	}
-
-	private void showProgressBar() {
-		progressBar.setVisibility(View.VISIBLE);
-		progressBar.setProgress(0);
-		progressBar.setMax(3);
-        progressBar.setIndeterminate(false);
 	}
 
 	@Override
@@ -482,15 +432,83 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		return super.onOptionsItemSelected(item);
 	}
 
+	@Override
+	public void onRoutingError(int msg) {
+		message(msg);
+	}
+
+	private void onInitialLocalization() {
+		renderer.renderVirtualObjects(true);
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				hideProgressBar();
+				if(mAdapter != null && mAdapter.getItemCount() > 0){
+					mDrawerLayout.openDrawer(Gravity.LEFT);
+				}
+			}
+		});
+	}
+
+	private void addPOI(float[] p, String name, String description) {
+		PoiDAO poi = new PoiDAO(environment_id, name, description, p[0], p[1], p[2]);
+		poi.save();
+		updatePOIs = true;
+	}
+
+	private void loadEnvironment(Long id) {
+		Intent i = new Intent(this, ArActivity.class);
+		i.putExtra(KEY_ENVIRONMENT_ID, id);
+		startActivity(i);
+		ArActivity.this.finish();
+	}
+
+	private void saveToFile(QuadTree floorPlanData, String name) {
+		FileOutputStream fout;
+		ObjectOutputStream oos;
+		try {
+			fout = openFileOutput(name + ".tree", Context.MODE_PRIVATE);
+			oos = new ObjectOutputStream(fout);
+			oos.writeObject(floorPlanData);
+			Log.d(TAG, fout.getFD().toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private QuadTree loadFromFile(String name) {
+		FileInputStream is;
+		ObjectInputStream os;
+		QuadTree tree = null;
+		try {
+			is = openFileInput(name + ".tree");
+			os = new ObjectInputStream(is);
+			tree = (QuadTree) os.readObject();
+		} catch (IOException | ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		return tree;
+	}
+
+	private void hideProgressBar() {
+		progressBar.setVisibility(View.INVISIBLE);
+	}
+
+	private void showProgressBar() {
+		progressBar.setVisibility(View.VISIBLE);
+		progressBar.setProgress(0);
+		progressBar.setMax(3);
+		progressBar.setIndeterminate(false);
+	}
+
 	private void message(final int message_resource) {
-		Toast.makeText(this, message_resource, Toast.LENGTH_SHORT).show();
+		Snackbar.make(uxLayout,message_resource,Snackbar.LENGTH_SHORT).show();
 	}
 
 	protected void setupCameraProperties(Tango tango) {
 		extrinsics = setupExtrinsics(tango);
 		intrinsics = tango.getCameraIntrinsics(ACTIVE_CAMERA_INTRINSICS);
 	}
-
 
 	protected void connectTango() {
 		tango = new Tango(this, new Runnable() {
@@ -532,13 +550,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						setupCameraProperties(tango);
 					} catch (TangoOutOfDateException e) {
 						Log.e(TAG, getString(R.string.exception_out_of_date), e);
-//                        Toast.makeText(ArActivity.this, R.string.exception_out_of_date, Toast.LENGTH_SHORT).show();
+						message(R.string.exception_out_of_date);
 					} catch (TangoErrorException e) {
 						Log.e(TAG, getString(R.string.exception_tango_error), e);
-//                        Toast.makeText(ArActivity.this, R.string.exception_tango_error, Toast.LENGTH_SHORT).show();
+						message(R.string.exception_tango_error);
 					} catch (TangoInvalidException e) {
 						Log.e(TAG, getString(R.string.exception_tango_invalid), e);
-//                        Toast.makeText(ArActivity.this, R.string.exception_tango_invalid, Toast.LENGTH_SHORT).show();
+						message(R.string.exception_tango_invalid);
 					}
 				}
 			}
@@ -547,6 +565,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			renderer.setFloorLevel(mapper.getFloorLevel());
 		}
 	}
+
 
 	@NonNull
 	private TangoConfig getTangoConfig() {
@@ -565,10 +584,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		return config;
 	}
 
-
 	public TangoPoseData getCurrentPose() {
 		return tango.getPoseAtTime(rgbFrameTimestamp, ADF_T_DEVICE_FRAME_PAIR);
 	}
+
 
 	@Override
 	public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -590,14 +609,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						switch (currentState){
 							case mapping:
 								mapper.setFloorLevel(touchPosition[1]);
-								Snackbar.make(view, R.string.floorSet, Snackbar.LENGTH_SHORT).show();
+								message(R.string.floorSet);
 								Log.d(TAG, "Floor level: " + mapper.getFloorLevel());
 								renderer.setFloorLevel(mapper.getFloorLevel());
 								renderer.renderVirtualObjects(true);
 								break;
 							case editing:
-								// toggle filled status of quadrant
-								Snackbar.make(view, "This should toggle a quadrant", Snackbar.LENGTH_SHORT).show();
+								message(R.string.toggle_quadrant);
 								mapper.toggle(new Vector2(touchPosition[0],touchPosition[2]));
 								renderer.setTrackPosition(new Vector3(touchPosition[0],touchPosition[1],touchPosition[2]));
 								break;
@@ -606,20 +624,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				}
 
 			} catch (TangoException t) {
-				Toast.makeText(getApplicationContext(),
-						R.string.failed_measurement,
-						Toast.LENGTH_SHORT).show();
+				message(R.string.failed_measurement);
 				Log.e(TAG, getString(R.string.failed_measurement), t);
 			} catch (SecurityException t) {
-				Toast.makeText(getApplicationContext(),
-						R.string.failed_permissions,
-						Toast.LENGTH_SHORT).show();
+						message(R.string.failed_permissions);
 				Log.e(TAG, getString(R.string.failed_permissions), t);
 			}
 		}
 		return true;
 	}
-
 
 	private void setDisplayRotation() {
 		Display display = getWindowManager().getDefaultDisplay();
@@ -689,7 +702,6 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				localized = true;
 			}
 		}
-
 		@Override
 		public void onPointCloudAvailable(final TangoPointCloudData pointCloud) {
 			if (tangoUx != null) {
@@ -701,19 +713,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				mapper.mapPointCloud(pointCloud);
 			}
 		}
-	}
 
-	private void onInitialLocalization() {
-		renderer.renderVirtualObjects(true);
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				hideProgressBar();
-				if(mAdapter != null && mAdapter.getItemCount() > 0){
-					mDrawerLayout.openDrawer(Gravity.LEFT);
-				}
-			}
-		});
 	}
 
 	private class OnSaveButtonClickListener implements View.OnClickListener {
