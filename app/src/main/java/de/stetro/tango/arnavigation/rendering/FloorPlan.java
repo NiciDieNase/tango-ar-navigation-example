@@ -88,10 +88,6 @@ public class FloorPlan extends Object3D {
                     indices[i] = 3;
             }
             indices[i] += (i/6)*4;
-            if(i < 30){
-                Log.d(TAG, String.valueOf(i) + " " + String.valueOf(indices[i]));
-            }
-
             int index = i * 3;
             normals[index] = 0;
             normals[index + 1] = 1;
@@ -106,7 +102,6 @@ public class FloorPlan extends Object3D {
     }
 
     private void updatePoints(int pointCount, FloatBuffer pointCloudBuffer) {
-        Log.d(TAG, "Number of Vertices: " + pointCount + " " + pointCount / 4);
         mGeometry.setNumIndices(pointCount);
         mGeometry.setVertices(pointCloudBuffer);
         mGeometry.changeBufferData(mGeometry.getVertexBufferInfo(), mGeometry.getVertices(), 0, pointCount * 3);
