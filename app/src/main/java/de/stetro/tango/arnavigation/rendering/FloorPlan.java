@@ -1,6 +1,8 @@
 package de.stetro.tango.arnavigation.rendering;
 
 
+import android.util.Log;
+
 import org.rajawali3d.Object3D;
 import org.rajawali3d.materials.Material;
 import org.rajawali3d.math.vector.Vector2;
@@ -14,7 +16,8 @@ import de.stetro.tango.arnavigation.data.QuadTree;
 
 public class FloorPlan extends Object3D {
 
-    private static final int MAX_VERTICES = 10000;
+    private static final int MAX_VERTICES = ( 60000 ) / 3;
+    private static final String TAG = FloorPlan.class.getSimpleName();
     private final float[] color;
     private QuadTree data;
     private double floorLevel = -1.4;
@@ -49,8 +52,8 @@ public class FloorPlan extends Object3D {
 
     public void rebuildPoints() {
         List<Vector2> filledPoints = data.getFilledEdgePointsAsPolygon();
-        if(filledPoints.size() == Integer.MAX_VALUE){
-            throw new RuntimeException("Reached MAX_INT");
+        if(filledPoints.size() * 3 > MAX_VERTICES){
+            throw new RuntimeException("To many tiles");
         }
         FloatBuffer points = FloatBuffer.allocate(filledPoints.size() * 3);
         for (Vector2 filledPoint : filledPoints) {
@@ -58,7 +61,7 @@ public class FloorPlan extends Object3D {
             points.put(0);
             points.put((float) filledPoint.getY());
         }
-        updatePoints(filledPoints.size(), points);
+        updatePoints(filledPoints.size() * 6 / 4, points);
     }
 
     private void init() {
@@ -69,7 +72,26 @@ public class FloorPlan extends Object3D {
         float[] normals = new float[MAX_VERTICES * 3];
         int[] indices = new int[MAX_VERTICES];
         for (int i = 0; i < indices.length; ++i) {
-            indices[i] = i;
+            switch (i%6){
+                case 0:
+                    indices[i] = 0;
+                    break;
+                case 1:
+                case 4:
+                    indices[i] = 1;
+                    break;
+                case 2:
+                case 3:
+                    indices[i] = 2;
+                    break;
+                case 5:
+                    indices[i] = 3;
+            }
+            indices[i] += (i/6)*4;
+            if(i < 30){
+                Log.d(TAG, String.valueOf(i) + " " + String.valueOf(indices[i]));
+            }
+
             int index = i * 3;
             normals[index] = 0;
             normals[index + 1] = 1;
@@ -84,6 +106,7 @@ public class FloorPlan extends Object3D {
     }
 
     private void updatePoints(int pointCount, FloatBuffer pointCloudBuffer) {
+        Log.d(TAG, "Number of Vertices: " + pointCount + " " + pointCount / 4);
         mGeometry.setNumIndices(pointCount);
         mGeometry.setVertices(pointCloudBuffer);
         mGeometry.changeBufferData(mGeometry.getVertexBufferInfo(), mGeometry.getVertices(), 0, pointCount * 3);

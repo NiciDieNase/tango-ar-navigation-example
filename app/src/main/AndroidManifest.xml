@@ -11,7 +11,8 @@
         android:icon="@mipmap/ic_navigation_app_color_48dp"
         android:label="@string/app_name"
         android:theme="@style/AppTheme"
-        android:name=".ARNavigationApp">
+        android:name=".ARNavigationApp"
+        android:largeHeap="true">
 
         <meta-data android:name="DATABASE" android:value="ar_navigation.db" />
         <meta-data android:name="VERSION" android:value="1" />

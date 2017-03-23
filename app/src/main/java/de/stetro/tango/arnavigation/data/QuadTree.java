@@ -99,9 +99,6 @@ public class QuadTree implements Serializable, Cloneable{
             list.add(new Vector2(x - range / 2.0                       , y - range / 2.0));
             list.add(new Vector2(x + range - PLANE_SPACER - range / 2.0, y - range / 2.0));
             list.add(new Vector2(x - range / 2.0                       , y + range - PLANE_SPACER- range / 2.0));
-
-            list.add(new Vector2(x - range / 2.0                       , y + range - PLANE_SPACER- range / 2.0));
-            list.add(new Vector2(x + range - PLANE_SPACER- range / 2.0 , y- range / 2.0));
             list.add(new Vector2(x + range - PLANE_SPACER- range / 2.0 , y + range - PLANE_SPACER- range / 2.0));
         } else {
             for (QuadTree child : children) {
