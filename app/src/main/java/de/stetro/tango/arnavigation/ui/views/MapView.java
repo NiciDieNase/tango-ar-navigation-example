@@ -26,8 +26,12 @@ public class MapView extends View implements View.OnTouchListener, MapTransforma
 
     private final ArrayList<Vector3> points = new ArrayList<>();
 
-    private Paint paint;
+    private Paint paintGreen;
+    private Paint paintBlue;
     private QuadTree floorPlanData;
+    private Vector3 currentPosition = new Vector3(0,0,0);
+    private Vector3 currentPositionTransformed;
+
     private MapTransformationGestureDetector mapTransformationGestureDetector;
 
     private Matrix4 activeTransformation = Matrix4.createTranslationMatrix(new Vector3());
@@ -53,9 +57,13 @@ public class MapView extends View implements View.OnTouchListener, MapTransforma
     }
 
     private void init() {
-        paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(Color.GREEN);
-        paint.setStyle(Paint.Style.FILL_AND_STROKE);
+        paintGreen = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintGreen.setColor(Color.GREEN);
+        paintGreen.setStyle(Paint.Style.FILL_AND_STROKE);
+
+        paintBlue = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintBlue.setColor(Color.BLUE);
+        paintBlue.setStyle(Paint.Style.FILL_AND_STROKE);
         mapTransformationGestureDetector = new MapTransformationGestureDetector(this);
         setOnTouchListener(this);
         transformPoints();
@@ -73,6 +81,9 @@ public class MapView extends View implements View.OnTouchListener, MapTransforma
                 }
             }
         }
+        if(currentPosition != null){
+            currentPositionTransformed = currentPosition.clone().multiply(activeTransformation);
+        }
     }
 
     @Override
@@ -81,12 +92,15 @@ public class MapView extends View implements View.OnTouchListener, MapTransforma
         canvas.drawColor(Color.WHITE);
         synchronized (points) {
             for (Vector3 point : points) {
-                drawRect(canvas, point.x, point.y);
+                drawRect(canvas, point.x, point.y, paintGreen);
+            }
+            if(currentPositionTransformed != null){
+                drawRect(canvas, currentPositionTransformed.x, currentPositionTransformed.y,paintBlue);
             }
         }
     }
 
-    private void drawRect(Canvas canvas, double x, double y) {
+    private void drawRect(Canvas canvas, double x, double y, Paint paint) {
         canvas.drawRect(
                 (int) (x * MAP_SCALE_CONSTANT),
                 (int) (y * MAP_SCALE_CONSTANT),
@@ -129,6 +143,12 @@ public class MapView extends View implements View.OnTouchListener, MapTransforma
     @Override
     public void OnQuadTreeUpdate() {
         transformPoints();
+        postInvalidate();
+    }
+
+    public void setCurrentPosition(Vector3 currentPosition) {
+        this.currentPosition.setAll(currentPosition.x,currentPosition.z,0.0);
+        this.currentPositionTransformed = this.currentPosition.clone().multiply(activeTransformation);
         postInvalidate();
     }
 }

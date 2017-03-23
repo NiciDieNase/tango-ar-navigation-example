@@ -47,6 +47,7 @@ import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.experimental.TangoImageBuffer;
 import com.projecttango.rajawali.DeviceExtrinsics;
+import com.projecttango.rajawali.ScenePoseCalculator;
 import com.projecttango.tangosupport.TangoPointCloudManager;
 import com.projecttango.tangosupport.TangoSupport;
 
@@ -784,6 +785,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						TangoPoseData currentPose = getCurrentPose();
 						if (currentPose != null && currentPose.statusCode == TangoPoseData.POSE_VALID) {
 							renderer.updateRenderCameraPose(currentPose, extrinsics);
+							Vector3 position = ScenePoseCalculator.toOpenGlCameraPose(currentPose, extrinsics).getPosition();
+							mapView.setCurrentPosition(position);
 							cameraPoseTimestamp = currentPose.timestamp;
 						}
 					}

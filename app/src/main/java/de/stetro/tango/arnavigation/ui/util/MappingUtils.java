@@ -12,6 +12,8 @@ import com.google.atap.tangoservice.TangoPoseData;
 import com.google.atap.tangoservice.experimental.TangoImageBuffer;
 import com.projecttango.tangosupport.TangoSupport;
 
+import org.rajawali3d.math.vector.Vector2;
+
 /**
  * Created by felix on 13/03/17.
  */
@@ -129,5 +131,11 @@ public class MappingUtils {
 		} else {
 			return Configuration.ORIENTATION_PORTRAIT;
 		}
+	}
+
+	public static double distance(Vector2 v1, Vector2 v2){
+		double a = v1.getX()-v2.getX();
+		double b = v1.getY()-v2.getY();
+		return Math.sqrt(a*a - b * b);
 	}
 }
