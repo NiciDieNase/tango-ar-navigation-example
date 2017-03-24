@@ -28,6 +28,7 @@ public class TargetMarker extends Object3D {
     }
 
     private void init() {
+        float normLength = (float) Math.sqrt(w/2 * w/2 + h*h);
         float[] vertices = {
                 0,0,0,
                  w/2, h,  w /2,
@@ -44,10 +45,10 @@ public class TargetMarker extends Object3D {
                 2,4,1
         };
         float[] normals = {
-                h, -w/2, 0,
-                0,  h, -w/2,
-                h, -w/2, 0,
-                0,  h, w/2,
+                h / normLength, -w/2 / normLength, 0 / normLength,
+                0 / normLength, -w/2 / normLength,-h / normLength,
+                h / normLength, -w/2 / normLength, 0 / normLength,
+                0 / normLength, -w/2 / normLength, h / normLength,
                 0,1,0,
                 0,1,0
         };
