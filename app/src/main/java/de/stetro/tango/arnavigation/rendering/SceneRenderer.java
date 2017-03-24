@@ -3,7 +3,6 @@ package de.stetro.tango.arnavigation.rendering;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.media.MediaPlayer;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -64,7 +63,6 @@ public class SceneRenderer extends RajawaliRenderer {
     private static final int MAX_NUMBER_OF_POINTS = 60000;
     private static final double CLEAR_DISTANCE = .8;
     private static final int NUM_RANDOM_OBJECTS = 20;
-    private MediaPlayer player = MediaPlayer.create(mContext, R.raw.smw_coin);
     private QuadTree data;
     // Rajawali texture used to render the Tango color camera
     private ATexture mTangoCameraTexture;
@@ -269,8 +267,6 @@ public class SceneRenderer extends RajawaliRenderer {
         }
         if(horizontalDistance(mTargetMarker.getPosition(),position)< CLEAR_DISTANCE){
             setRemoveAnimation(mTargetMarker);
-            player = MediaPlayer.create(mContext, R.raw.smb_powerup);
-            player.start();
         }
     }
 
@@ -573,7 +569,6 @@ public class SceneRenderer extends RajawaliRenderer {
     private class DeletAfterAnimationListener implements IAnimationListener {
         private Object3D obj;
         private Animation anim;
-        private MediaPlayer player;
 
         public DeletAfterAnimationListener(Object3D obj,Animation anim) {
             this.obj = obj;
@@ -593,8 +588,6 @@ public class SceneRenderer extends RajawaliRenderer {
 
         @Override
         public void onAnimationStart(Animation animation) {
-            player = MediaPlayer.create(mContext, R.raw.smw_coin);
-            player.start();
         }
 
         @Override
