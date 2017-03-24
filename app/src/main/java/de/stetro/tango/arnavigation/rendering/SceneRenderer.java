@@ -245,10 +245,7 @@ public class SceneRenderer extends RajawaliRenderer {
         getCurrentCamera().setPosition(cameraPose.getPosition());
         floorPlan.setTrajectoryPosition(cameraPose.getPosition());
         checkRemovableObjects(cameraPose.getPosition());
-        Vector3 position = cameraPose.getPosition();
-        position.y = position.y+.3;
-        light.setPosition(position);
-//        floorPlan.forceAdd(cameraPose.getPosition());
+        light.setPosition(cameraPose.getPosition());
     }
 
     private void checkRemovableObjects(Vector3 position) {
@@ -534,32 +531,27 @@ public class SceneRenderer extends RajawaliRenderer {
         mTargetMarker.setVisible(false);
     }
 
-    public void showPOIs(List<PoiDAO> poiDAOs) {
+    public void showAllPOIs(List<PoiDAO> poiDAOs) {
         RajawaliScene scene = getCurrentScene();
         for(Object3D obj: POIs){
             scene.removeChild(obj);
         }
         POIs.clear();
         for(PoiDAO p:poiDAOs){
-            if(mTargetMarker != null){
-                Object3D coin = mTargetMarker.clone(true, true);
-                coin.setPosition(p.getPosition());
-                coin.setScale(10.0);
-                coin.setVisible(true);
-                scene.addChild(coin);
-                Animation3D anim = setRotateAnimation(coin);
-                scene.registerAnimation(anim);
-                anim.play();
-                POIs.add(coin);
-            } else {
-                Sphere sphere = new Sphere(.3f, 20, 20);
-                sphere.setPosition(p.getPosition());
-                sphere.setMaterial(red);
-                scene.addChild(sphere);
-                POIs.add(sphere);
-            }
+            Object3D marker = new TargetMarker(1.2f,0.4f);
+            marker.setPosition(p.getPosition());
+            scene.addChild(marker);
+            Animation3D anim = setRotateAnimation(marker);
+            scene.registerAnimation(anim);
+            anim.play();
+            POIs.add(marker);
         }
+    }
 
+    public void hideAllPOIs(){
+        for(Object3D obj : POIs){
+            getCurrentScene().removeChild(obj);
+        }
     }
 
     public void setPathHeight(double pathHeight) {

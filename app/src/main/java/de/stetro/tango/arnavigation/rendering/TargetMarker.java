@@ -1,6 +1,8 @@
 package de.stetro.tango.arnavigation.rendering;
 
 import org.rajawali3d.Object3D;
+import org.rajawali3d.lights.ALight;
+import org.rajawali3d.lights.DirectionalLight;
 import org.rajawali3d.materials.Material;
 
 /**

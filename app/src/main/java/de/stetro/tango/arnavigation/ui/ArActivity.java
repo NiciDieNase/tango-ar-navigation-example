@@ -857,7 +857,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 //					if(updatePOIs){
 						// Show all POIs
 //						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
-//						renderer.showPOIs(poiDAOs);
+//						renderer.showAllPOIs(poiDAOs);
 //						updatePOIs = false;
 //					}
 				} catch (TangoInvalidException e){
