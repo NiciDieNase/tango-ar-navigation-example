@@ -103,6 +103,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private double RANDOM_RANGE = 10.0;
     private List<Object3D> motivationObjects = new ArrayList<>();
     private boolean startMotivation;
+    private TargetMarker mTargetMarker;
 
     public interface OnRoutingErrorListener{
         void onRoutingError(int resId);
@@ -194,8 +195,14 @@ public class SceneRenderer extends RajawaliRenderer {
         } catch (ParsingException e) {
             e.printStackTrace();
         }
+//        setRotateAnimation(mCoin);
 
-        setRotateAnimation(mCoin);
+        mTargetMarker = new TargetMarker(1.2f,0.4f);
+        setRotateAnimation(mTargetMarker).play();
+        getCurrentScene().addChild(mTargetMarker);
+        mTargetMarker.setVisible(false);
+        mTargetMarker.setMaterial(red);
+
     }
 
     public void startMotivation(double height) {
@@ -502,14 +509,13 @@ public class SceneRenderer extends RajawaliRenderer {
         data = mapData;
     }
 
-    public void showPOI(Vector3 position){
-        mCoin.setPosition(position);
-        mCoin.setVisible(true);
-        setRemoveAnimation(mCoin);
+    public void showPOI(Vector3 p){
+        mTargetMarker.setPosition(p.x,getFloorLevel(),p.z);
+        mTargetMarker.setVisible(true);
     }
 
     public void hidePOI(){
-        mCoin.setVisible(false);
+        mTargetMarker.setVisible(false);
     }
 
     public void showPOIs(List<PoiDAO> poiDAOs) {
@@ -519,8 +525,8 @@ public class SceneRenderer extends RajawaliRenderer {
         }
         POIs.clear();
         for(PoiDAO p:poiDAOs){
-            if(mCoin != null){
-                Object3D coin = mCoin.clone(true, true);
+            if(mTargetMarker != null){
+                Object3D coin = mTargetMarker.clone(true, true);
                 coin.setPosition(p.getPosition());
                 coin.setScale(10.0);
                 coin.setVisible(true);

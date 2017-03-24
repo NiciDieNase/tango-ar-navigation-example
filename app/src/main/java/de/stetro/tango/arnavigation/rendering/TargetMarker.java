@@ -13,9 +13,13 @@ public class TargetMarker extends Object3D {
     private final float w;
     private final float[] color;
 
+    public TargetMarker(){
+        this(0.5f,0.5f);
+    }
+
     public TargetMarker(float height, float baseWidth){
         super();
-        this.color = new float[]{0.0f, 1.0f, 0.0f, 0.5f};
+        this.color = new float[]{1.0f, 0.0f, 0.0f, 0.5f};
         this.h = height;
         this.w = baseWidth;
         init();
