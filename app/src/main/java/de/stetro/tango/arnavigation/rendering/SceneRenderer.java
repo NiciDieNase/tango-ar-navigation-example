@@ -166,11 +166,9 @@ public class SceneRenderer extends RajawaliRenderer {
         red.setColorInfluence(0.5f);
 //        red.setAmbientColor(new float[]{0.8f, 0.1f, 0.1f});
 
-        // Add a directional light in an arbitrary direction.
         light = new PointLight();
         light.setColor(1, 1, 1);
         light.setPower(0.8f);
-        light.setPosition(3, 2, 4);
         getCurrentScene().addLight(light);
 
         spot = new DirectionalLight(0, 1, 0);
