@@ -88,7 +88,7 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
-    private static final long DELAY = 1 * 1000;
+    private static final long DELAY = 0;
     private long environment_id;
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;

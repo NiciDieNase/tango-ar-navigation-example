@@ -154,15 +154,17 @@ public class SceneRenderer extends RajawaliRenderer {
         yellow.setColor(Color.YELLOW);
         yellow.enableLighting(true);
         yellow.setColorInfluence(1.0f);
-        yellow.setAmbientColor(Color.YELLOW);
+//        yellow.setAmbientColor(Color.YELLOW);
         yellow.setDiffuseMethod(new DiffuseMethod.Lambert());
         yellow.setSpecularMethod(new SpecularMethod.Phong());
 
         red = new Material();
         red.setColor(Color.RED);
+        red.enableLighting(true);
         red.setDiffuseMethod(new DiffuseMethod.Lambert());
         red.setSpecularMethod(new SpecularMethod.Phong());
-        red.enableLighting(true);
+        red.setColorInfluence(0.5f);
+//        red.setAmbientColor(new float[]{0.8f, 0.1f, 0.1f});
 
         // Add a directional light in an arbitrary direction.
         light = new PointLight();
@@ -173,8 +175,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
         spot = new DirectionalLight(0, 1, 0);
         spot.setColor(1, 1, 1);
-        spot.setPower(0.8f);
-        spot.setPosition(3, 2, 4);
+        spot.setPower(1.0f);
         getCurrentScene().addLight(light);
 
 
@@ -340,10 +341,9 @@ public class SceneRenderer extends RajawaliRenderer {
                 startMotivation = false;
             }
             if (renderPath) {
-                scene = getCurrentScene();
-                PathFinder finder = new PathFinder(floorPlan.getData());
-                CatmullRomCurve3D curvePath = new CatmullRomCurve3D();
                 try {
+                    scene = getCurrentScene();
+                    PathFinder finder = new PathFinder(floorPlan.getData());
                     // Remove old objects
                     for(Object3D obj:pathObjects){
                         scene.removeChild(obj);
@@ -357,6 +357,8 @@ public class SceneRenderer extends RajawaliRenderer {
 
                     // Calculate Path and get intermediate Points
                     List<Vector2> pathBetween = finder.findPathBetween(startPoint, endPoint);
+
+                    CatmullRomCurve3D curvePath = new CatmullRomCurve3D();
                     for (Vector2 vector2 : pathBetween) {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
