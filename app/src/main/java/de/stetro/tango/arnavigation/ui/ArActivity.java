@@ -9,6 +9,7 @@ import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -64,6 +65,8 @@ import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import butterknife.BindView;
@@ -85,7 +88,8 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
-	private long environment_id;
+    private static final long DELAY = 1 * 1000;
+    private long environment_id;
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;
 	private boolean motivating;
@@ -431,8 +435,14 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 //				updatePOIs = true;
 				break;
 			case R.id.action_end_motivation:
-				renderer.finishMotivation();
-				break;
+                new AsyncTask<Void, Integer, Object>() {
+                    @Override
+                    protected Object doInBackground(Void... params) {
+                        renderer.finishMotivation();
+                        return null;
+                    }
+                }.execute();
+                break;
 		}
 		return super.onOptionsItemSelected(item);
 	}
@@ -699,7 +709,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE){
 				if(!motivating && environment_id != 0){
 					Vector3 position = ScenePoseCalculator.
-							toOpenGlCameraPose(pose, extrinsics).getPosition();
+						toOpenGlCameraPose(pose, extrinsics).getPosition();
 					renderer.startMotivation(position.z);
 					motivating = true;
 				}
@@ -709,9 +719,14 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE) {
 				if(!localized){
+					new Timer().schedule(new TimerTask() {
+						@Override
+						public void run() {
+							renderer.finishMotivation();
+							onInitialLocalization();
+						}
+					}, DELAY);
 					Log.d(TAG,"Initial Localization");
-//					renderer.finishMotivation();
-					onInitialLocalization();
 				}
 				localized = true;
 			}

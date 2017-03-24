@@ -24,6 +24,7 @@ import org.rajawali3d.animation.IAnimationListener;
 import org.rajawali3d.animation.RotateOnAxisAnimation;
 import org.rajawali3d.animation.TranslateAnimation3D;
 import org.rajawali3d.curves.CatmullRomCurve3D;
+import org.rajawali3d.lights.DirectionalLight;
 import org.rajawali3d.lights.PointLight;
 import org.rajawali3d.loader.LoaderOBJ;
 import org.rajawali3d.loader.ParsingException;
@@ -104,6 +105,8 @@ public class SceneRenderer extends RajawaliRenderer {
     private List<Object3D> motivationObjects = new ArrayList<>();
     private boolean startMotivation;
     private TargetMarker mTargetMarker;
+    private DirectionalLight spot;
+    private boolean finishMotivation;
 
     public interface OnRoutingErrorListener{
         void onRoutingError(int resId);
@@ -170,6 +173,12 @@ public class SceneRenderer extends RajawaliRenderer {
         light.setPosition(3, 2, 4);
         getCurrentScene().addLight(light);
 
+        spot = new DirectionalLight(0, 1, 0);
+        spot.setColor(1, 1, 1);
+        spot.setPower(0.8f);
+        spot.setPosition(3, 2, 4);
+        getCurrentScene().addLight(light);
+
 
         floorPlan = new FloorPlan(data);
         getCurrentScene().addChild(floorPlan);
@@ -200,6 +209,7 @@ public class SceneRenderer extends RajawaliRenderer {
         mTargetMarker = new TargetMarker(1.2f,0.4f);
         setRotateAnimation(mTargetMarker).play();
         getCurrentScene().addChild(mTargetMarker);
+        mTargetMarker.setPosition(0,200,0);
         mTargetMarker.setVisible(false);
         mTargetMarker.setMaterial(red);
 
@@ -217,8 +227,11 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void finishMotivation(){
-        for(Object3D obj: motivationObjects){
-            setRemoveAnimation(obj);
+        for(int i = 0; i < motivationObjects.size(); i++){
+            Object3D obj = motivationObjects.get(i);
+            Animation3D animation = setRemoveAnimation(obj);
+            animation.setDelayDelta(i*0.25);
+            animation.play();
         }
     }
 
@@ -243,28 +256,33 @@ public class SceneRenderer extends RajawaliRenderer {
     private void checkRemovableObjects(Vector3 position) {
         final List<Object3D> removeElements = new ArrayList<>();
         for(final Object3D obj: pathObjects){
-            if(obj.getPosition().distanceTo(position) < CLEAR_DISTANCE){
+            if(horizontalDistance(obj.getPosition(),position) < CLEAR_DISTANCE){
                 removeElements.add(obj);
-                setRemoveAnimation(obj);
-            }
-        }
-        for(Object3D obj: motivationObjects){
-            if(obj.getPosition().distanceTo(position) < CLEAR_DISTANCE){
-                setRemoveAnimation(obj);
+                setRemoveAnimation(obj).play();
             }
         }
         pathObjects.removeAll(removeElements);
+        for(Object3D obj: motivationObjects){
+            if(horizontalDistance(obj.getPosition(),position) < CLEAR_DISTANCE){
+                setRemoveAnimation(obj).play();
+            }
+        }
+        if(horizontalDistance(mTargetMarker.getPosition(),position)< CLEAR_DISTANCE){
+            setRemoveAnimation(mTargetMarker);
+            player = MediaPlayer.create(mContext, R.raw.smb_powerup);
+            player.start();
+        }
     }
 
-    private void setRemoveAnimation(Object3D obj) {
+    private Animation3D setRemoveAnimation(Object3D obj) {
         Vector3 target = obj.getPosition().clone();
         target.y = target.y + 5;
         Animation3D anim = new TranslateAnimation3D(obj.getPosition(),target);
         anim.setTransformable3D(obj);
         anim.setDurationMilliseconds(4000);
-        anim.registerListener(new DeletAfterAnimationListener(obj));
+        anim.registerListener(new DeletAfterAnimationListener(obj,anim));
         getCurrentScene().registerAnimation(anim);
-        anim.play();
+        return anim;
     }
 
     /**
@@ -510,8 +528,10 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void showPOI(Vector3 p){
-        mTargetMarker.setPosition(p.x,getFloorLevel(),p.z);
+        getCurrentScene().addChild(mTargetMarker);
+        mTargetMarker.setPosition(p.x, getFloorLevel(), p.z);
         mTargetMarker.setVisible(true);
+        spot.setPosition(p.x, getFloorLevel()-0.5, p.z);
     }
 
     public void hidePOI(){
@@ -552,15 +572,18 @@ public class SceneRenderer extends RajawaliRenderer {
 
     private class DeletAfterAnimationListener implements IAnimationListener {
         private Object3D obj;
+        private Animation anim;
         private MediaPlayer player;
 
-        public DeletAfterAnimationListener(Object3D obj) {
+        public DeletAfterAnimationListener(Object3D obj,Animation anim) {
             this.obj = obj;
+            this.anim = anim;
         }
 
         @Override
         public void onAnimationEnd(Animation animation) {
             getCurrentScene().removeChild(obj);
+            getCurrentScene().unregisterAnimation(anim);
         }
 
         @Override
@@ -578,6 +601,14 @@ public class SceneRenderer extends RajawaliRenderer {
         public void onAnimationUpdate(Animation animation, double interpolatedTime) {
 
         }
+    }
+
+    private double horizontalDistance(Vector3 v1, Vector3 v2){
+        v1 = v1.clone();
+        v2 = v2.clone();
+        v1.y = 0;
+        v2.y = 0;
+        return v1.distanceTo(v2);
     }
 
     public void setListerner(OnRoutingErrorListener listerner) {
