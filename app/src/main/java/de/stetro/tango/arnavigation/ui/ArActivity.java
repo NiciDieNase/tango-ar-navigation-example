@@ -88,6 +88,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private long environment_id;
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;
+	private boolean motivating;
 
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 
@@ -422,12 +423,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				new SelectEnvironmentFragment().setEnvironmentSelectionListener(this).show(getFragmentManager(),"loadEnvDialog");
 				break;
 			case R.id.clear_pois:
-				if(environment_id != 0){
-					PoiDAO.deleteAll(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
-				} else {
-					PoiDAO.deleteAll(PoiDAO.class);
-				}
-				updatePOIs = true;
+//				if(environment_id != 0){
+//					PoiDAO.deleteAll(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
+//				} else {
+//					PoiDAO.deleteAll(PoiDAO.class);
+//				}
+//				updatePOIs = true;
+				break;
+			case R.id.action_end_motivation:
+				renderer.finishMotivation();
 				break;
 		}
 		return super.onOptionsItemSelected(item);
@@ -691,13 +695,22 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			if (tangoUx != null) {
 				tangoUx.updatePoseStatus(pose.statusCode);
 			}
-			if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
+			if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE
+					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE){
+				if(!motivating && environment_id != 0){
+					Vector3 position = ScenePoseCalculator.
+							toOpenGlCameraPose(pose, extrinsics).getPosition();
+					renderer.startMotivation(position.z);
+					motivating = true;
+				}
+			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE) {
 				// Handle new ADF Pose
 			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE) {
 				if(!localized){
 					Log.d(TAG,"Initial Localization");
+//					renderer.finishMotivation();
 					onInitialLocalization();
 				}
 				localized = true;

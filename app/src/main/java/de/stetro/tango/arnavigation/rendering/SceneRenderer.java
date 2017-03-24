@@ -32,7 +32,6 @@ import org.rajawali3d.materials.methods.DiffuseMethod;
 import org.rajawali3d.materials.methods.SpecularMethod;
 import org.rajawali3d.materials.textures.ATexture;
 import org.rajawali3d.materials.textures.StreamingTexture;
-import org.rajawali3d.materials.textures.Texture;
 import org.rajawali3d.math.Matrix4;
 import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector2;
@@ -63,6 +62,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private static final String TAG = SceneRenderer.class.getSimpleName();
     private static final int MAX_NUMBER_OF_POINTS = 60000;
     private static final double CLEAR_DISTANCE = .8;
+    private static final int NUM_RANDOM_OBJECTS = 20;
     private MediaPlayer player = MediaPlayer.create(mContext, R.raw.smw_coin);
     private QuadTree data;
     // Rajawali texture used to render the Tango color camera
@@ -95,9 +95,14 @@ public class SceneRenderer extends RajawaliRenderer {
     private RotateOnAxisAnimation anim;
     private Object3D mCoin;
     private List<Animation3D> pathAnimations = new ArrayList<>();
+    private List<Animation3D> motivateAnimations = new ArrayList<>();
     private LoaderOBJ objParser;
 
     private OnRoutingErrorListener listerner;
+    private Line3D path;
+    private double RANDOM_RANGE = 10.0;
+    private List<Object3D> motivationObjects = new ArrayList<>();
+    private boolean startMotivation;
 
     public interface OnRoutingErrorListener{
         void onRoutingError(int resId);
@@ -178,11 +183,6 @@ public class SceneRenderer extends RajawaliRenderer {
         TrackPoint.setMaterial(tangoCameraMaterial);
         getCurrentScene().addChild(TrackPoint);
 
-        PointOfInterest = new Cylinder(.10f,.20f, 20,20);
-        PointOfInterest.setVisible(false);
-        PointOfInterest.setMaterial(red);
-        PointOfInterest.setDoubleSided(true);
-
         objParser = new LoaderOBJ(mContext.getResources(),mTextureManager,R.raw.coin_n5_obj);
         try {
             objParser.parse();
@@ -195,21 +195,24 @@ public class SceneRenderer extends RajawaliRenderer {
             e.printStackTrace();
         }
 
-        Texture background = new Texture("background", R.drawable.background);
-        try {
-            red.addTexture(background);
-            red.setColorInfluence(0.0f);
-        } catch (ATexture.TextureException e) {
-            e.printStackTrace();
-        }
-        getCurrentScene().addChild(PointOfInterest);
+        setRotateAnimation(mCoin);
+    }
 
-        anim = new RotateOnAxisAnimation(Vector3.Axis.Y,360.0);
-        anim.setInterpolator(new LinearInterpolator());
-        anim.setDurationMilliseconds(5000);
-        anim.setRepeatMode(Animation.RepeatMode.INFINITE);
-        anim.setTransformable3D(mCoin);
-        getCurrentScene().registerAnimation(anim);
+    public void startMotivation(double height) {
+        for(int i = 0; i< NUM_RANDOM_OBJECTS ; i++){
+            double x = (Math.random() * RANDOM_RANGE) - RANDOM_RANGE /2;
+            double z = (Math.random() * RANDOM_RANGE) - RANDOM_RANGE /2;
+            Object3D randomObject = mCoin.clone(true,true);
+            randomObject.setPosition(x,height,z);
+            motivationObjects.add(randomObject);
+        }
+        startMotivation = true;
+    }
+
+    public void finishMotivation(){
+        for(Object3D obj: motivationObjects){
+            setRemoveAnimation(obj);
+        }
     }
 
     /**
@@ -223,29 +226,38 @@ public class SceneRenderer extends RajawaliRenderer {
         getCurrentCamera().setRotation(cameraPose.getOrientation());
         getCurrentCamera().setPosition(cameraPose.getPosition());
         floorPlan.setTrajectoryPosition(cameraPose.getPosition());
-        checkPathObjects(cameraPose.getPosition());
+        checkRemovableObjects(cameraPose.getPosition());
         Vector3 position = cameraPose.getPosition();
         position.y = position.y+.3;
         light.setPosition(position);
 //        floorPlan.forceAdd(cameraPose.getPosition());
     }
 
-    private void checkPathObjects(Vector3 position) {
+    private void checkRemovableObjects(Vector3 position) {
         final List<Object3D> removeElements = new ArrayList<>();
         for(final Object3D obj: pathObjects){
             if(obj.getPosition().distanceTo(position) < CLEAR_DISTANCE){
-                Vector3 target = obj.getPosition().clone();
-                target.y = target.y + 5;
-                Animation3D anim = new TranslateAnimation3D(obj.getPosition(),target);
-                anim.setTransformable3D(obj);
-                anim.setDurationMilliseconds(4000);
-                anim.registerListener(new DeletAfterAnimationListener(obj));
                 removeElements.add(obj);
-                getCurrentScene().registerAnimation(anim);
-                anim.play();
+                setRemoveAnimation(obj);
+            }
+        }
+        for(Object3D obj: motivationObjects){
+            if(obj.getPosition().distanceTo(position) < CLEAR_DISTANCE){
+                setRemoveAnimation(obj);
             }
         }
         pathObjects.removeAll(removeElements);
+    }
+
+    private void setRemoveAnimation(Object3D obj) {
+        Vector3 target = obj.getPosition().clone();
+        target.y = target.y + 5;
+        Animation3D anim = new TranslateAnimation3D(obj.getPosition(),target);
+        anim.setTransformable3D(obj);
+        anim.setDurationMilliseconds(4000);
+        anim.registerListener(new DeletAfterAnimationListener(obj));
+        getCurrentScene().registerAnimation(anim);
+        anim.play();
     }
 
     /**
@@ -300,24 +312,34 @@ public class SceneRenderer extends RajawaliRenderer {
     protected void onRender(long ellapsedRealtime, double deltaTime) {
         synchronized (this){
             super.onRender(ellapsedRealtime, deltaTime);
+            RajawaliScene scene;
+            if(startMotivation){
+                scene = getCurrentScene();
+                for(Object3D obj: motivationObjects){
+                    scene.addChild(obj);
+                    motivateAnimations.add(setRotateAnimation(obj));
+                }
+                startMotivation = false;
+            }
             if (renderPath) {
+                scene = getCurrentScene();
                 PathFinder finder = new PathFinder(floorPlan.getData());
                 CatmullRomCurve3D curvePath = new CatmullRomCurve3D();
                 try {
                     // Remove old objects
-                    RajawaliScene scene = getCurrentScene();
                     for(Object3D obj:pathObjects){
                         scene.removeChild(obj);
                     }
                     pathObjects.clear();
+                    scene.removeChild(path);
                     for(Animation3D anim:pathAnimations){
                         scene.unregisterAnimation(anim);
                     }
                     pathAnimations.clear();
 
                     // Calculate Path and get intermediate Points
-                    List<Vector2> path = finder.findPathBetween(startPoint, endPoint);
-                    for (Vector2 vector2 : path) {
+                    List<Vector2> pathBetween = finder.findPathBetween(startPoint, endPoint);
+                    for (Vector2 vector2 : pathBetween) {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
                     // Calculate distance between Objects placed on path
@@ -349,10 +371,10 @@ public class SceneRenderer extends RajawaliRenderer {
                             pathAnimations.add(anim);
                         }
                     }
-                    Line3D line = new Line3D(linePoints, 10, Color.BLUE);
-                    line.setMaterial(blue);
+                    this.path = new Line3D(linePoints, 10, Color.BLUE);
+                    this.path.setMaterial(blue);
                     if(renderLine){
-                        pathObjects.add(line);
+                        scene.addChild(this.path);
                     }
                     // Add Objects and start Animations
                     for(Object3D obj:pathObjects){
@@ -481,15 +503,12 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void showPOI(Vector3 position){
-//        PointOfInterest.setPosition(position);
-//        PointOfInterest.setVisible(true);
         mCoin.setPosition(position);
         mCoin.setVisible(true);
-        anim.play();
+        setRemoveAnimation(mCoin);
     }
 
     public void hidePOI(){
-//        PointOfInterest.setVisible(false);
         mCoin.setVisible(false);
     }
 
