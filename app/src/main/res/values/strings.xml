@@ -20,4 +20,5 @@
     <string name="toggle_quadrant">This should toggle a quadrant</string>
     <string name="routing_error">Routing error</string>
     <string name="end_motivation_mode">End Motivation Mode</string>
+    <string name="scenarios_activity_name">AR Navigation Scenarios</string>
 </resources>

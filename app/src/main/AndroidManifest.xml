@@ -37,6 +37,17 @@
             
         </activity>
 
+        <activity android:name=".ui.ScenarioSelectActivity"
+            android:label="@string/scenarios_activity_name"
+            android:theme="@style/Theme.AppCompat"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>
