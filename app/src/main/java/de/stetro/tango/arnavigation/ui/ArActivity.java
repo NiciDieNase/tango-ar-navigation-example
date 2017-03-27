@@ -194,6 +194,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		setupSurfaceView();
 
 		Bundle extras = getIntent().getExtras();
+		boolean floorplanEnabled = false;
+		boolean motivationEnabled = false;
+		boolean pathEnabled = false;
 		if (extras != null) {
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
@@ -214,6 +217,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				updatePOIs = true;
 				showProgressBar();
 			}
+
+			// get what to render from intent
+			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
+			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED,false);
 		}
 		if(mapper == null){
 			mapper = new EnvironmentMapper();
@@ -234,6 +242,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 			}
 		});
+		renderer.setFloorplanEnabled(floorplanEnabled);
+		renderer.setMotivationEnabled(motivationEnabled);
+		renderer.setPathEnabled(pathEnabled);
+
 
 		tangoUx = new TangoUx(this);
 		tangoUx.setLayout(uxLayout);
@@ -858,7 +870,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						togglePointcloud = false;
 					}
 					if(toggleFloorplan){
-						renderer.renderFloorPlan(!renderer.getRenderFloorPlan());
+						renderer.toggleFloorPlan();
 						toggleFloorplan = false;
 					}
 //					if(updatePOIs){

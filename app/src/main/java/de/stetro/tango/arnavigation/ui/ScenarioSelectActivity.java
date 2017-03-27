@@ -19,6 +19,12 @@ import de.stetro.tango.arnavigation.data.persistence.EnvironmentDAO;
  */
 
 public class ScenarioSelectActivity extends AppCompatActivity {
+
+    public static final String KEY_PATH_ENABLED = "path_enabled";
+    public static final String KEY_MOTIVATION_ENABELD = "motivation_enabled";
+    public static final String KEY_ENVIRONMENT_ID = "environment_id";
+    public static final String KEY_FLOORPLAN_ENABLED = "floorplan_enabled";
+
     private static final String SAVED_ENVIRONMENT_ID = "saved_environment";
     private static final String TAG = ScenarioSelectActivity.class.getSimpleName();
     private Long environmentId;
@@ -31,18 +37,19 @@ public class ScenarioSelectActivity extends AppCompatActivity {
         setContentView(R.layout.scenario_select);
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
 
-        GridLayoutManager layoutManager = new GridLayoutManager(this, 3);
-        recyclerView.setLayoutManager(layoutManager);
-        RecyclerView.Adapter adapter = new ScenariosAdaper();
-        recyclerView.setAdapter(adapter);
-
-        Log.d(TAG,"Number of items: " + adapter.getItemCount());
-
         SharedPreferences preferences = getPreferences(Context.MODE_PRIVATE);
         environmentId = preferences.getLong(SAVED_ENVIRONMENT_ID,0);
         if(environmentId == 0){
             selectEnvironment();
         }
+
+        GridLayoutManager layoutManager = new GridLayoutManager(this, 3);
+        recyclerView.setLayoutManager(layoutManager);
+        RecyclerView.Adapter adapter = new ScenariosAdaper(this,environmentId);
+        recyclerView.setAdapter(adapter);
+
+        Log.d(TAG,"Number of items: " + adapter.getItemCount());
+
     }
 
     @Override

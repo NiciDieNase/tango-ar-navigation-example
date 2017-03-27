@@ -71,9 +71,9 @@ public class SceneRenderer extends RajawaliRenderer {
     // Rajawali texture used to render the Tango color camera
     private ATexture mTangoCameraTexture;
 
+    private FloorPlan floorPlan;
     // Keeps track of whether the scene camera has been configured
     private boolean mSceneCameraConfigured;
-    private FloorPlan floorPlan;
     private Material blue;
     private Material green;
     private Material red;
@@ -89,7 +89,6 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderFloorPlan = false;
     private boolean renderSpheres = false;
     private boolean renderCoins = true;
-    private boolean renderLine = true;
     private Cylinder PointOfInterest;
     private boolean renderPOI = false;
     private List<Object3D> POIs = new ArrayList<>();
@@ -99,8 +98,8 @@ public class SceneRenderer extends RajawaliRenderer {
     private Object3D mCoin;
     private List<Animation3D> pathAnimations = new ArrayList<>();
     private List<Animation3D> motivateAnimations = new ArrayList<>();
-
     private LoaderOBJ objParser;
+
     private OnRoutingErrorListener listerner;
     private Line3D path;
     private List<Object3D> motivationObjects = new ArrayList<>();
@@ -108,6 +107,14 @@ public class SceneRenderer extends RajawaliRenderer {
     private TargetMarker mTargetMarker;
     private ALight spot;
     private boolean finishMotivation;
+
+    private boolean motivationEnabled = false;
+    private boolean pathEnabled = false;
+    private boolean floorplanEnabled = false;
+
+    public void toggleFloorPlan() {
+        this.renderFloorPlan = !this.renderFloorPlan;
+    }
 
     public interface OnRoutingErrorListener{
         void onRoutingError(int resId);
@@ -217,41 +224,45 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public void startMotivation(double height) {
-        for(int i = 0; i< NUM_RANDOM_OBJECTS ; i++){
-            double x = (Math.random() * RANDOM_RANGE) - RANDOM_RANGE /2;
-            double z = (Math.random() * RANDOM_RANGE) - RANDOM_RANGE /2;
-            Object3D randomObject = mCoin.clone(true,true);
-            randomObject.setPosition(x,height,z);
-            Animation3D animation3D = setRotateAnimation(randomObject);
-            motivateAnimations.add(animation3D);
-            animation3D.play();
-            motivationObjects.add(randomObject);
+        if(motivationEnabled){
+            for(int i = 0; i< NUM_RANDOM_OBJECTS ; i++){
+                double x = (Math.random() * RANDOM_RANGE) - RANDOM_RANGE /2;
+                double z = (Math.random() * RANDOM_RANGE) - RANDOM_RANGE /2;
+                Object3D randomObject = mCoin.clone(true,true);
+                randomObject.setPosition(x,height,z);
+                Animation3D animation3D = setRotateAnimation(randomObject);
+                motivateAnimations.add(animation3D);
+                animation3D.play();
+                motivationObjects.add(randomObject);
+            }
+            startMotivation = true;
         }
-        startMotivation = true;
     }
 
     public void finishMotivation(){
-        final List<Animation3D> removeAnimations = new ArrayList<>();
-        for(int i = 0; i < motivationObjects.size(); i++){
-            Object3D obj = motivationObjects.get(i);
-            Animation3D animation = setRemoveAnimation(obj);
-            animation.setDelayDelta(i*0.25);
-            animation.play();
-        }
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                RajawaliScene scene = getCurrentScene();
-                for(Animation3D anim : motivateAnimations){
-                    scene.unregisterAnimation(anim);
-                }
-                for(Animation3D anim : removeAnimations){
-                    scene.unregisterAnimation(anim);
-                }
-                motivateAnimations.clear();
-                removeAnimations.clear();
+        if(motivationEnabled) {
+            final List<Animation3D> removeAnimations = new ArrayList<>();
+            for (int i = 0; i < motivationObjects.size(); i++) {
+                Object3D obj = motivationObjects.get(i);
+                Animation3D animation = setRemoveAnimation(obj);
+                animation.setDelayDelta(i * 0.25);
+                animation.play();
             }
-        }, (long) (motivationObjects.size() * 0.3 * 1000));
+            new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    RajawaliScene scene = getCurrentScene();
+                    for (Animation3D anim : motivateAnimations) {
+                        scene.unregisterAnimation(anim);
+                    }
+                    for (Animation3D anim : removeAnimations) {
+                        scene.unregisterAnimation(anim);
+                    }
+                    motivateAnimations.clear();
+                    removeAnimations.clear();
+                }
+            }, (long) (motivationObjects.size() * 0.3 * 1000));
+        }
     }
 
     /**
@@ -413,7 +424,7 @@ public class SceneRenderer extends RajawaliRenderer {
                     }
                     this.path = new Line3D(linePoints, 10, Color.BLUE);
                     this.path.setMaterial(blue);
-                    if(renderLine){
+                    if(pathEnabled){
                         scene.addChild(this.path);
                     }
                     // Add Objects and start Animations
@@ -475,17 +486,6 @@ public class SceneRenderer extends RajawaliRenderer {
         return data;
     }
 
-    public void renderVirtualObjects(boolean renderObjects) {
-        if (this.floorPlan != null){
-            this.renderFloorPlan = renderObjects;
-            this.floorPlan.setVisible(renderObjects);
-        }
-        if(this.mPointCloud != null){
-            this.renderPointCloud = renderObjects;
-            this.mPointCloud.setVisible(renderObjects);
-        }
-    }
-
     public void addToFloorPlan(List<List<Vector3>>positions){
         floorPlan.bulkAdd(positions);
     }
@@ -520,7 +520,9 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public boolean renderFloorPlan(boolean show){
         this.renderFloorPlan = show;
-        floorPlan.setVisible(renderFloorPlan);
+        if(floorplanEnabled){
+            floorPlan.setVisible(renderFloorPlan);
+        }
         return renderFloorPlan;
     }
 
@@ -620,5 +622,17 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void setListerner(OnRoutingErrorListener listerner) {
         this.listerner = listerner;
+    }
+
+    public void setMotivationEnabled(boolean motivationEnabled) {
+        this.motivationEnabled = motivationEnabled;
+    }
+
+    public void setPathEnabled(boolean pathEnabled) {
+        this.pathEnabled = pathEnabled;
+    }
+
+    public void setFloorplanEnabled(boolean floorplanEnabled) {
+        this.floorplanEnabled = floorplanEnabled;
     }
 }
