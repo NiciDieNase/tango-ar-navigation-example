@@ -112,21 +112,37 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean pathEnabled = false;
     private boolean floorplanEnabled = false;
 
-    public void toggleFloorPlan() {
-        this.renderFloorPlan = !this.renderFloorPlan;
-    }
-
-    public interface OnRoutingErrorListener{
-        void onRoutingError(int resId);
-    }
     public SceneRenderer(Context context) {
-        super(context);
-        data = new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
+        this(context,
+                new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9),
+                false,false,false);
     }
 
     public SceneRenderer(Context context, QuadTree data){
-        super(context);
-        this.data = data;
+        this(context,data,false,false,false);
+    }
+
+    public SceneRenderer(Context context, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled) {
+        this(context);
+        this.floorplanEnabled = floorplanEnabled;
+        this.motivationEnabled = motivationEnabled;
+        this.pathEnabled = pathEnabled;
+    }
+
+    public SceneRenderer(Context arActivity, QuadTree tree, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled) {
+        super(arActivity);
+        this.data = tree;
+        this.floorplanEnabled = floorplanEnabled;
+        this.motivationEnabled = motivationEnabled;
+        this.pathEnabled = pathEnabled;
+    }
+
+    public void toggleFloorPlan() {
+        this.renderFloorPlan = !this.renderFloorPlan;
+    }
+    public interface OnRoutingErrorListener{
+        void onRoutingError(int resId);
+
     }
 
     public void setQuadTree(QuadTree data){

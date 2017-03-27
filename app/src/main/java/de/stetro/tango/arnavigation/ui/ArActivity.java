@@ -87,12 +87,10 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
-    private static final long DELAY = 0 * 1000;
-    private long environment_id;
+	private long environment_id;
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;
 	private boolean motivating;
-
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 
 	// frame pairs for adf based ar pose tracking
@@ -100,6 +98,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
+
 	public static final TangoCoordinateFramePair DEVICE_T_PREVIOUS_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
@@ -115,13 +114,14 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	// This changes the Camera Texture and Intrinsics
 	protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
 	protected static final int INVALID_TEXTURE_ID = -1;
-
 	private static final String TAG = ArActivity.class.getSimpleName();
+
 	public static final boolean LEARNINGMODE_ENABLED = true;
 	public static final String KEY_ENVIRONMENT_ID = "environment_id";
 	protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 	protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
 	protected Tango tango;
+	private long motivationDelay = 0 * 1000;
 
 	protected TangoUx tangoUx;
 	protected TangoCameraIntrinsics intrinsics;
@@ -194,10 +194,16 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		setupSurfaceView();
 
 		Bundle extras = getIntent().getExtras();
-		boolean floorplanEnabled = false;
-		boolean motivationEnabled = false;
-		boolean pathEnabled = false;
+		boolean floorplanEnabled = true;
+		boolean motivationEnabled = true;
+		boolean pathEnabled = true;
 		if (extras != null) {
+			// get what to render from intent
+			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
+			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED,false);
+			motivationDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0) * 1000;
+
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
 				EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
@@ -206,7 +212,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				if (tree != null) {
 					mapper = new EnvironmentMapper(tree);
 					mapper.setFloorLevel(environment.getFloorLevel());
-					renderer = new SceneRenderer(this, tree);
+					renderer = new SceneRenderer(this, tree,floorplanEnabled,motivationEnabled,pathEnabled);
 					currentState = ActivityState.localizing;
 				} else {
 					Log.d(TAG,"Failed to load map");
@@ -218,14 +224,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				showProgressBar();
 			}
 
-			// get what to render from intent
-			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
-			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
-			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED,false);
 		}
 		if(mapper == null){
 			mapper = new EnvironmentMapper();
-			renderer = new SceneRenderer(this);
+			renderer = new SceneRenderer(this,floorplanEnabled,motivationEnabled,pathEnabled);
 			currentState = ActivityState.mapping;
 			fabAddPoi.hide();
 		}
@@ -242,14 +244,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 			}
 		});
-		renderer.setFloorplanEnabled(floorplanEnabled);
-		renderer.setMotivationEnabled(motivationEnabled);
-		renderer.setPathEnabled(pathEnabled);
 
 
 		tangoUx = new TangoUx(this);
 		tangoUx.setLayout(uxLayout);
-		// TODO setup which objects to render
 		mainSurfaceView.setSurfaceRenderer(renderer);
 		mainSurfaceView.setZOrderOnTop(false);
 		mapView.setFloorPlanData(renderer.getFloorPlanData());
@@ -446,14 +444,14 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 //				updatePOIs = true;
 				break;
 			case R.id.action_end_motivation:
-                new AsyncTask<Void, Integer, Object>() {
-                    @Override
-                    protected Object doInBackground(Void... params) {
-                        renderer.finishMotivation();
-                        return null;
-                    }
-                }.execute();
-                break;
+				new AsyncTask<Void, Integer, Object>() {
+					@Override
+					protected Object doInBackground(Void... params) {
+						renderer.finishMotivation();
+						return null;
+					}
+				}.execute();
+				break;
 		}
 		return super.onOptionsItemSelected(item);
 	}
@@ -656,7 +654,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				message(R.string.failed_measurement);
 				Log.e(TAG, getString(R.string.failed_measurement), t);
 			} catch (SecurityException t) {
-						message(R.string.failed_permissions);
+				message(R.string.failed_permissions);
 				Log.e(TAG, getString(R.string.failed_permissions), t);
 			}
 		}
@@ -723,7 +721,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE){
 				if(!motivating && environment_id != 0){
 					Vector3 position = ScenePoseCalculator.
-						toOpenGlCameraPose(pose, extrinsics).getPosition();
+							toOpenGlCameraPose(pose, extrinsics).getPosition();
 					renderer.startMotivation(position.z);
 					motivating = true;
 				}
@@ -739,7 +737,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 							renderer.finishMotivation();
 							onInitialLocalization();
 						}
-					}, DELAY);
+					}, motivationDelay);
 					Log.d(TAG,"Initial Localization");
 				}
 				localized = true;
@@ -874,7 +872,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						toggleFloorplan = false;
 					}
 //					if(updatePOIs){
-						// Show all POIs
+					// Show all POIs
 //						List<PoiDAO> poiDAOs = PoiDAO.find(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
 //						renderer.showAllPOIs(poiDAOs);
 //						updatePOIs = false;

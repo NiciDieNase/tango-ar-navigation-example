@@ -2,6 +2,7 @@ package de.stetro.tango.arnavigation.ui;
 
 import android.content.Context;
 import android.content.Intent;
+import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,9 +19,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     private static final String TAG = ScenariosAdaper.class.getSimpleName();
 
-    private final int numScenarios = 10;
-    private final String[] scenarios = {"Scenario 1", "Scenario 2", "Scenario 3",
-            "Scenario 4", "Scenario 5"};
+    private final int numScenarios = 6;
     private  final String[] description =
             {"All enabled", "path disabled", "motivation disabled",
                     "floorplan disabled", "everything disabled" };
@@ -80,30 +79,34 @@ class ScenariosAdaper extends RecyclerView.Adapter {
         public void onClick(View view) {
             switch (position){
                 case 1:
-                    mContext.startActivity(getIntent(environmentID,true,true,true));
+                    mContext.startActivity(getIntent(environmentID,true,true,true,0));
                     break;
                 case 2:
-                    mContext.startActivity(getIntent(environmentID,false,true,true));
+                    mContext.startActivity(getIntent(environmentID,false,true,true,0));
                     break;
                 case 3:
-                    mContext.startActivity(getIntent(environmentID,true,false,true));
+                    mContext.startActivity(getIntent(environmentID,true,false,true,0));
                     break;
                 case 4:
-                    mContext.startActivity(getIntent(environmentID,true,true,false));
+                    mContext.startActivity(getIntent(environmentID,true,true,false,0));
+                    break;
+                case 5:
+                    mContext.startActivity(getIntent(environmentID,false,false,false,5));
                     break;
                 default:
-                    mContext.startActivity(getIntent(environmentID,false,false,false));
+                    Snackbar.make(view,"No Scenario defined",Snackbar.LENGTH_SHORT);
                     break;
             }
         }
     }
 
-    Intent getIntent(long environmentID, boolean pathEnabled, boolean motivationEnabled, boolean floorplanEnabled){
+    Intent getIntent(long environmentID, boolean pathEnabled, boolean motivationEnabled, boolean floorplanEnabled, long delaySec){
         Intent i = new Intent(mContext, ArActivity.class);
         i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentID);
         i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,floorplanEnabled);
         i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,motivationEnabled);
         i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED,pathEnabled);
+        i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,delaySec);
         return i;
     }
 }

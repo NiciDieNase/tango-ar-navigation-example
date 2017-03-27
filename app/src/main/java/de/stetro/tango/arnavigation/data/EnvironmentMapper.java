@@ -38,7 +38,7 @@ public class EnvironmentMapper {
 	private DescriptiveStatistics calculationTimes = new DescriptiveStatistics();
 	private OnMapUpdateListener listener;
 
-	public interface OnMapUpdateListener{
+    public interface OnMapUpdateListener{
 		void onMapUpdate(QuadTree data);
 		void onNewCalcTimes(double avg, long last);
 	}
