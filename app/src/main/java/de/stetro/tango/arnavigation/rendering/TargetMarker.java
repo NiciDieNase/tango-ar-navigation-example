@@ -26,7 +26,7 @@ public class TargetMarker extends Object3D {
     }
 
     private void init() {
-//        setDoubleSided(true);
+        setDoubleSided(true);
         float normLength = (float) Math.sqrt(w*w/4 + h*h);
         float[] vertices = {
                 0,0,0,

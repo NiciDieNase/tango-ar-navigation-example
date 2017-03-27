@@ -87,7 +87,7 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
-    private static final long DELAY = 15 * 1000;
+    private static final long DELAY = 0 * 1000;
     private long environment_id;
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;
@@ -237,7 +237,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 		tangoUx = new TangoUx(this);
 		tangoUx.setLayout(uxLayout);
-		renderer.renderVirtualObjects(true);
+		// TODO setup which objects to render
 		mainSurfaceView.setSurfaceRenderer(renderer);
 		mainSurfaceView.setZOrderOnTop(false);
 		mapView.setFloorPlanData(renderer.getFloorPlanData());
@@ -452,7 +452,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	}
 
 	private void onInitialLocalization() {
-		renderer.renderVirtualObjects(true);
+		// TODO render objects we need to show
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
@@ -629,7 +629,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 								message(R.string.floorSet);
 								Log.d(TAG, "Floor level: " + mapper.getFloorLevel());
 								renderer.setFloorLevel(mapper.getFloorLevel());
-								renderer.renderVirtualObjects(true);
+//								TODO render Floorplan
 								break;
 							case editing:
 								message(R.string.toggle_quadrant);

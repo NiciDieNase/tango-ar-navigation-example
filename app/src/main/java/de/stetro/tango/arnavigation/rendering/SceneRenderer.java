@@ -24,6 +24,7 @@ import org.rajawali3d.animation.RotateOnAxisAnimation;
 import org.rajawali3d.animation.TranslateAnimation3D;
 import org.rajawali3d.curves.CatmullRomCurve3D;
 import org.rajawali3d.lights.ALight;
+import org.rajawali3d.lights.DirectionalLight;
 import org.rajawali3d.lights.PointLight;
 import org.rajawali3d.loader.LoaderOBJ;
 import org.rajawali3d.loader.ParsingException;
@@ -173,8 +174,8 @@ public class SceneRenderer extends RajawaliRenderer {
         light.setPower(0.8f);
         getCurrentScene().addLight(light);
 
-//        spot = new DirectionalLight(0, 1, 0);
-        spot = new PointLight();
+        spot = new DirectionalLight(0, 1, 0);
+//        spot = new PointLight();
         spot.setColor(1, 1, 1);
         spot.setPower(1.0f);
         getCurrentScene().addLight(light);
@@ -207,7 +208,7 @@ public class SceneRenderer extends RajawaliRenderer {
 //        setRotateAnimation(mCoin);
 
         mTargetMarker = new TargetMarker(1.2f,0.4f);
-//        setRotateAnimation(mTargetMarker).play();
+        setRotateAnimation(mTargetMarker).play();
         getCurrentScene().addChild(mTargetMarker);
         mTargetMarker.setPosition(0,200,0);
         mTargetMarker.setVisible(false);
@@ -545,7 +546,7 @@ public class SceneRenderer extends RajawaliRenderer {
         getCurrentScene().addChild(mTargetMarker);
         mTargetMarker.setPosition(p.x, getFloorLevel(), p.z);
         mTargetMarker.setVisible(true);
-        spot.setPosition(p.x, getFloorLevel()-0.5, p.z);
+        spot.setPosition(p.x, getFloorLevel()-0.3, p.z);
     }
 
     public void hidePOI(){
