@@ -9,7 +9,6 @@ import android.content.res.Configuration;
 import android.hardware.display.DisplayManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -88,7 +87,7 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
-    private static final long DELAY = 0;
+    private static final long DELAY = 15 * 1000;
     private long environment_id;
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;
@@ -310,7 +309,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		fabAddPoi.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				TangoPoseData poseData = getCurrentPose();
+				TangoPoseData poseData = getCurrentADFPose();
 				final float[] p = poseData.getTranslationAsFloats();
 				new SaveDialogFragment().setListener(new SaveDialogFragment.OnSaveListener() {
 					@Override
@@ -332,7 +331,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		poiAdapter = new PoiAdapter(poiDAOs, new PoiAdapter.OnPoiSelectedListener() {
 			@Override
 			public void onPoiSelected(PoiDAO poi) {
-				double[] v = getCurrentPose().translation;
+				double[] v = getCurrentADFPose().translation;
 				Vector3 start = new Vector3(v[0], v[2], -v[1]);
 				renderer.setPath(start, poi.getPosition());
 				renderer.setPathHeight(v[2]-0.5);
@@ -411,10 +410,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		}
 		switch (item.getItemId()) {
 			case R.id.set_start_point:
-				renderer.setStartPoint(getCurrentPose(), extrinsics);
+				renderer.setStartPoint(getCurrentADFPose(), extrinsics);
 				break;
 			case R.id.set_end_point:
-				renderer.setEndPoint(getCurrentPose(), extrinsics
+				renderer.setEndPoint(getCurrentADFPose(), extrinsics
 				);
 				break;
 			case R.id.toggle_point_cloud:
@@ -599,7 +598,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		return config;
 	}
 
-	public TangoPoseData getCurrentPose() {
+	public TangoPoseData getCurrentSOSPose(){
+		return tango.getPoseAtTime(rgbFrameTimestamp, SOS_T_DEVICE_FRAME_PAIR);
+	}
+	public TangoPoseData getCurrentADFPose() {
 		return tango.getPoseAtTime(rgbFrameTimestamp, ADF_T_DEVICE_FRAME_PAIR);
 	}
 
@@ -810,7 +812,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						rgbFrameTimestamp = tango.updateTexture(ACTIVE_CAMERA_INTRINSICS);
 					}
 					if (rgbFrameTimestamp > cameraPoseTimestamp) {
-						TangoPoseData currentPose = getCurrentPose();
+						TangoPoseData currentPose;
+						if(localized){
+							currentPose = getCurrentADFPose();
+						} else {
+							currentPose = getCurrentSOSPose();
+						}
 						if (currentPose != null && currentPose.statusCode == TangoPoseData.POSE_VALID) {
 							renderer.updateRenderCameraPose(currentPose, extrinsics);
 							Vector3 position = ScenePoseCalculator.toOpenGlCameraPose(currentPose, extrinsics).getPosition();

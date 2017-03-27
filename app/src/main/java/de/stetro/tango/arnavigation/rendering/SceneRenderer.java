@@ -23,7 +23,7 @@ import org.rajawali3d.animation.IAnimationListener;
 import org.rajawali3d.animation.RotateOnAxisAnimation;
 import org.rajawali3d.animation.TranslateAnimation3D;
 import org.rajawali3d.curves.CatmullRomCurve3D;
-import org.rajawali3d.lights.DirectionalLight;
+import org.rajawali3d.lights.ALight;
 import org.rajawali3d.lights.PointLight;
 import org.rajawali3d.loader.LoaderOBJ;
 import org.rajawali3d.loader.ParsingException;
@@ -46,6 +46,8 @@ import org.rajawali3d.scene.RajawaliScene;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -62,21 +64,22 @@ public class SceneRenderer extends RajawaliRenderer {
     private static final String TAG = SceneRenderer.class.getSimpleName();
     private static final int MAX_NUMBER_OF_POINTS = 60000;
     private static final double CLEAR_DISTANCE = .8;
-    private static final int NUM_RANDOM_OBJECTS = 20;
+    private double RANDOM_RANGE = 15.0;
+    private static final int NUM_RANDOM_OBJECTS = 40;
     private QuadTree data;
     // Rajawali texture used to render the Tango color camera
     private ATexture mTangoCameraTexture;
+
     // Keeps track of whether the scene camera has been configured
     private boolean mSceneCameraConfigured;
-
     private FloorPlan floorPlan;
     private Material blue;
     private Material green;
     private Material red;
     private Material yellow;
     private PointCloud mPointCloud;
-    private Sphere TrackPoint;
 
+    private Sphere TrackPoint;
     private Vector3 startPoint;
     private Vector3 endPoint;
     private List<Object3D> pathObjects = new ArrayList<>();
@@ -95,15 +98,14 @@ public class SceneRenderer extends RajawaliRenderer {
     private Object3D mCoin;
     private List<Animation3D> pathAnimations = new ArrayList<>();
     private List<Animation3D> motivateAnimations = new ArrayList<>();
-    private LoaderOBJ objParser;
 
+    private LoaderOBJ objParser;
     private OnRoutingErrorListener listerner;
     private Line3D path;
-    private double RANDOM_RANGE = 10.0;
     private List<Object3D> motivationObjects = new ArrayList<>();
     private boolean startMotivation;
     private TargetMarker mTargetMarker;
-    private DirectionalLight spot;
+    private ALight spot;
     private boolean finishMotivation;
 
     public interface OnRoutingErrorListener{
@@ -171,7 +173,8 @@ public class SceneRenderer extends RajawaliRenderer {
         light.setPower(0.8f);
         getCurrentScene().addLight(light);
 
-        spot = new DirectionalLight(0, 1, 0);
+//        spot = new DirectionalLight(0, 1, 0);
+        spot = new PointLight();
         spot.setColor(1, 1, 1);
         spot.setPower(1.0f);
         getCurrentScene().addLight(light);
@@ -204,7 +207,7 @@ public class SceneRenderer extends RajawaliRenderer {
 //        setRotateAnimation(mCoin);
 
         mTargetMarker = new TargetMarker(1.2f,0.4f);
-        setRotateAnimation(mTargetMarker).play();
+//        setRotateAnimation(mTargetMarker).play();
         getCurrentScene().addChild(mTargetMarker);
         mTargetMarker.setPosition(0,200,0);
         mTargetMarker.setVisible(false);
@@ -218,18 +221,36 @@ public class SceneRenderer extends RajawaliRenderer {
             double z = (Math.random() * RANDOM_RANGE) - RANDOM_RANGE /2;
             Object3D randomObject = mCoin.clone(true,true);
             randomObject.setPosition(x,height,z);
+            Animation3D animation3D = setRotateAnimation(randomObject);
+            motivateAnimations.add(animation3D);
+            animation3D.play();
             motivationObjects.add(randomObject);
         }
         startMotivation = true;
     }
 
     public void finishMotivation(){
+        final List<Animation3D> removeAnimations = new ArrayList<>();
         for(int i = 0; i < motivationObjects.size(); i++){
             Object3D obj = motivationObjects.get(i);
             Animation3D animation = setRemoveAnimation(obj);
             animation.setDelayDelta(i*0.25);
             animation.play();
         }
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                RajawaliScene scene = getCurrentScene();
+                for(Animation3D anim : motivateAnimations){
+                    scene.unregisterAnimation(anim);
+                }
+                for(Animation3D anim : removeAnimations){
+                    scene.unregisterAnimation(anim);
+                }
+                motivateAnimations.clear();
+                removeAnimations.clear();
+            }
+        }, (long) (motivationObjects.size() * 0.3 * 1000));
     }
 
     /**
