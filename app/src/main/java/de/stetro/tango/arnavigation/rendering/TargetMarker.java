@@ -1,8 +1,6 @@
 package de.stetro.tango.arnavigation.rendering;
 
 import org.rajawali3d.Object3D;
-import org.rajawali3d.lights.ALight;
-import org.rajawali3d.lights.DirectionalLight;
 import org.rajawali3d.materials.Material;
 
 /**
@@ -28,8 +26,8 @@ public class TargetMarker extends Object3D {
     }
 
     private void init() {
-        setDoubleSided(true);
-        float normLength = (float) Math.sqrt(w/2 * w/2 + h*h);
+//        setDoubleSided(true);
+        float normLength = (float) Math.sqrt(w*w/4 + h*h);
         float[] vertices = {
                 0,0,0,
                  w/2, h,  w /2,
@@ -46,10 +44,10 @@ public class TargetMarker extends Object3D {
                 2,4,1
         };
         float[] normals = {
-                h / normLength, -w/2 / normLength, 0 / normLength,
-                0 / normLength, -w/2 / normLength,-h / normLength,
-                h / normLength, -w/2 / normLength, 0 / normLength,
-                0 / normLength, -w/2 / normLength, h / normLength,
+                 -h / normLength, w/2 / normLength, 0,
+                 0,               w/2 / normLength, h / normLength,
+                 h / normLength, w/2 / normLength, 0,
+                 0,               w/2 / normLength, -h / normLength,
                 0,1,0,
                 0,1,0
         };
