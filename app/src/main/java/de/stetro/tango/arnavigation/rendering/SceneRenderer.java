@@ -234,6 +234,7 @@ public class SceneRenderer extends RajawaliRenderer {
         setRotateAnimation(mTargetMarker).play();
         getCurrentScene().addChild(mTargetMarker);
         mTargetMarker.setPosition(0,200,0);
+        mTargetMarker.setTransparent(true);
         mTargetMarker.setVisible(false);
         mTargetMarker.setMaterial(red);
 

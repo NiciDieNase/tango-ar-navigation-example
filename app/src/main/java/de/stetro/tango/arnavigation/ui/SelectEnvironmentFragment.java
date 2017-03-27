@@ -32,6 +32,9 @@ public class SelectEnvironmentFragment extends DialogFragment {
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState) {
 		Iterator<EnvironmentDAO> all = EnvironmentDAO.findAll(EnvironmentDAO.class);
+		if(!all.hasNext()){
+			return null;
+		}
 		final List<EnvironmentDAO> items = new LinkedList<>();
 		List<String> strings = new LinkedList<>();
 		while(all.hasNext()){

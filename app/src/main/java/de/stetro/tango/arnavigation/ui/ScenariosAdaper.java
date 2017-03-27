@@ -1,8 +1,10 @@
 package de.stetro.tango.arnavigation.ui;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.support.design.widget.Snackbar;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,10 +21,10 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     private static final String TAG = ScenariosAdaper.class.getSimpleName();
 
-    private final int numScenarios = 6;
+    private final int numScenarios = 7;
     private  final String[] description =
             {"All enabled", "path disabled", "motivation disabled",
-                    "floorplan disabled", "everything disabled" };
+                    "floorplan disabled, 15s delay", "everything disabled" };
 
     private Context mContext;
     private long environmentID;
@@ -30,16 +32,18 @@ class ScenariosAdaper extends RecyclerView.Adapter {
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView title;
         public TextView subtitle;
+        public CardView card;
 
         public ViewHolder(View itemView) {
             super(itemView);
             Log.d(TAG,"Creating View Holder");
             title = (TextView) itemView.findViewById(R.id.scenario_title);
             subtitle = (TextView) itemView.findViewById(R.id.scenario_subtitle);
+            card = (CardView) itemView.findViewById(R.id.card_view);
         }
     }
 
-    public ScenariosAdaper(Context context, long environmentID){
+    public ScenariosAdaper(Activity context, long environmentID){
         this.mContext = context;
         this.environmentID = environmentID;
     }
@@ -59,7 +63,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
                 position < description.length
                         ? description[position]
                         : description[description.length-1]);
-        holder.itemView.setOnClickListener(new ScenarioClickListener(position));
+        ((ViewHolder) holder).card.setOnClickListener(new ScenarioClickListener(position));
 
     }
 
@@ -77,36 +81,37 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
         @Override
         public void onClick(View view) {
+            Log.d(TAG, "OnClick");
             switch (position){
-                case 1:
+                case 0:
                     mContext.startActivity(getIntent(environmentID,true,true,true,0));
                     break;
-                case 2:
+                case 1:
                     mContext.startActivity(getIntent(environmentID,false,true,true,0));
                     break;
-                case 3:
+                case 2:
                     mContext.startActivity(getIntent(environmentID,true,false,true,0));
                     break;
-                case 4:
-                    mContext.startActivity(getIntent(environmentID,true,true,false,0));
+                case 3:
+                    mContext.startActivity(getIntent(environmentID,true,true,false,15));
                     break;
-                case 5:
+                case 4:
                     mContext.startActivity(getIntent(environmentID,false,false,false,5));
                     break;
                 default:
-                    Snackbar.make(view,"No Scenario defined",Snackbar.LENGTH_SHORT);
+                    Snackbar.make(view,"No Scenario defined",Snackbar.LENGTH_SHORT).show();
                     break;
             }
         }
-    }
 
-    Intent getIntent(long environmentID, boolean pathEnabled, boolean motivationEnabled, boolean floorplanEnabled, long delaySec){
-        Intent i = new Intent(mContext, ArActivity.class);
-        i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentID);
-        i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,floorplanEnabled);
-        i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,motivationEnabled);
-        i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED,pathEnabled);
-        i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,delaySec);
-        return i;
+        Intent getIntent(long environmentID, boolean pathEnabled, boolean motivationEnabled, boolean floorplanEnabled, long delaySec){
+            Intent i = new Intent(mContext, ArActivity.class);
+            i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentID);
+            i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,floorplanEnabled);
+            i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,motivationEnabled);
+            i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED,pathEnabled);
+            i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,delaySec);
+            return i;
+        }
     }
 }
