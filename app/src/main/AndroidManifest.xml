@@ -39,7 +39,7 @@
 
         <activity android:name=".ui.ScenarioSelectActivity"
             android:label="@string/scenarios_activity_name"
-            android:theme="@style/Theme.AppCompat"
+            android:theme="@style/Theme.AppCompat.Light"
             android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
