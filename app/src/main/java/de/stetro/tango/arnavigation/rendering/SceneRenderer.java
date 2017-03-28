@@ -85,8 +85,6 @@ public class SceneRenderer extends RajawaliRenderer {
     private Vector3 endPoint;
     private List<Object3D> pathObjects = new ArrayList<>();
     private boolean renderPath = false;
-    private boolean renderPointCloud = true;
-    private boolean renderFloorPlan = false;
     private boolean renderSpheres = false;
     private boolean renderCoins = true;
     private Cylinder PointOfInterest;
@@ -111,6 +109,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean motivationEnabled = false;
     private boolean pathEnabled = false;
     private boolean floorplanEnabled = false;
+    private boolean renderPointCloud = true;
 
     public SceneRenderer(Context context) {
         this(context,
@@ -137,17 +136,13 @@ public class SceneRenderer extends RajawaliRenderer {
         this.pathEnabled = pathEnabled;
     }
 
-    public void toggleFloorPlan() {
-        this.renderFloorPlan = !this.renderFloorPlan;
+    public void onLocalized() {
+        finishMotivation();
+        floorPlan.setVisible(floorplanEnabled);
     }
+
     public interface OnRoutingErrorListener{
         void onRoutingError(int resId);
-
-    }
-
-    public void setQuadTree(QuadTree data){
-        this.data = data;
-        floorPlan.setData(data);
     }
 
     @Override
@@ -206,7 +201,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
         floorPlan = new FloorPlan(data);
         getCurrentScene().addChild(floorPlan);
-        floorPlan.setVisible(renderFloorPlan);
+        floorPlan.setVisible(false);
 
         mPointCloud = new PointCloud(MAX_NUMBER_OF_POINTS, 4);
         getCurrentScene().addChild(mPointCloud);
@@ -238,6 +233,33 @@ public class SceneRenderer extends RajawaliRenderer {
         mTargetMarker.setVisible(false);
         mTargetMarker.setMaterial(red);
 
+        Log.d(TAG,"Floorplan enabled :" + floorplanEnabled);
+        Log.d(TAG,"Motivation enabled :" + motivationEnabled);
+        Log.d(TAG,"Path enabled :" + pathEnabled);
+
+    }
+
+    public void setQuadTree(QuadTree data){
+        this.data = data;
+        floorPlan.setData(data);
+    }
+
+    public void renderSphere(boolean render){
+        this.TrackPoint.setVisible(render);
+    }
+
+    public void setMotivationEnabled(boolean motivationEnabled) {
+        this.motivationEnabled = motivationEnabled;
+    }
+
+    public void toggleFloorPlan() {
+        this.floorplanEnabled = !this.floorplanEnabled;
+    }
+
+    public boolean showPointCloud(boolean show){
+        this.renderPointCloud = show;
+        mPointCloud.setVisible(renderPointCloud);
+        return renderPointCloud;
     }
 
     public void startMotivation(double height) {
@@ -369,11 +391,11 @@ public class SceneRenderer extends RajawaliRenderer {
                                  int xPixelOffset, int yPixelOffset) {
     }
 
+
     @Override
     public void onTouchEvent(MotionEvent event) {
 
     }
-
 
     @Override
     protected void onRender(long ellapsedRealtime, double deltaTime) {
@@ -525,29 +547,17 @@ public class SceneRenderer extends RajawaliRenderer {
         mPointCloud.setOrientation(new Quaternion().fromMatrix(openGlTdepthMatrix).conjugate());
     }
 
-    public boolean showPointCloud(boolean show){
-        this.renderPointCloud = show;
-        mPointCloud.setVisible(renderPointCloud);
-        return renderPointCloud;
-    }
-
     public boolean getRenderPointCloud(){
         return renderPointCloud;
     }
 
     public boolean renderFloorPlan(boolean show){
-        this.renderFloorPlan = show;
-        if(floorplanEnabled){
-            floorPlan.setVisible(renderFloorPlan);
+        floorplanEnabled = show;
+        if(floorPlan != null){
+            floorPlan.setVisible(floorplanEnabled);
         }
-        return renderFloorPlan;
+        return floorplanEnabled;
     }
-
-    public void renderSphere(boolean render){
-        this.TrackPoint.setVisible(render);
-    }
-
-    public boolean getRenderFloorPlan(){ return renderFloorPlan; };
 
     public void manuelUpdate(float[] point){
         floorPlan.forceAdd(new Vector3(point[0],point[1],point[2]));
@@ -639,17 +649,5 @@ public class SceneRenderer extends RajawaliRenderer {
 
     public void setListerner(OnRoutingErrorListener listerner) {
         this.listerner = listerner;
-    }
-
-    public void setMotivationEnabled(boolean motivationEnabled) {
-        this.motivationEnabled = motivationEnabled;
-    }
-
-    public void setPathEnabled(boolean pathEnabled) {
-        this.pathEnabled = pathEnabled;
-    }
-
-    public void setFloorplanEnabled(boolean floorplanEnabled) {
-        this.floorplanEnabled = floorplanEnabled;
     }
 }

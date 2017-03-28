@@ -87,12 +87,7 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
-	private long environment_id;
-	private PoiAdapter poiAdapter;
-	private PoiAdapter mAdapter;
-	private boolean motivating;
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
-
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
 			new TangoCoordinateFramePair(
@@ -103,6 +98,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
+
 	public static final TangoCoordinateFramePair ADF_T_DEVICE_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
@@ -115,13 +111,19 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
 	protected static final int INVALID_TEXTURE_ID = -1;
 	private static final String TAG = ArActivity.class.getSimpleName();
-
 	public static final boolean LEARNINGMODE_ENABLED = true;
+	public static final boolean ENABLED_DEFAULT = true;
+
 	public static final String KEY_ENVIRONMENT_ID = "environment_id";
 	protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 	protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
 	protected Tango tango;
 	private long motivationDelay = 0 * 1000;
+
+	private long environment_id;
+	private PoiAdapter poiAdapter;
+	private PoiAdapter mAdapter;
+	private boolean motivating;
 
 	protected TangoUx tangoUx;
 	protected TangoCameraIntrinsics intrinsics;
@@ -199,9 +201,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		boolean pathEnabled = true;
 		if (extras != null) {
 			// get what to render from intent
-			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
-			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
-			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED,false);
+			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED, ENABLED_DEFAULT);
+			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, ENABLED_DEFAULT);
+			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, ENABLED_DEFAULT);
 			motivationDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0) * 1000;
 
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
@@ -734,7 +736,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 					new Timer().schedule(new TimerTask() {
 						@Override
 						public void run() {
-							renderer.finishMotivation();
+							renderer.onLocalized();
 							onInitialLocalization();
 						}
 					}, motivationDelay);

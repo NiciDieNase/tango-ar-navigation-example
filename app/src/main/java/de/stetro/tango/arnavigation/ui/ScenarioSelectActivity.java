@@ -1,13 +1,13 @@
 package de.stetro.tango.arnavigation.ui;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -28,6 +28,7 @@ public class ScenarioSelectActivity extends AppCompatActivity {
 
     private static final String SAVED_ENVIRONMENT_ID = "saved_environment";
     private static final String TAG = ScenarioSelectActivity.class.getSimpleName();
+    public static final int COL_SPAN = 4;
     private Long environmentId;
 
     RecyclerView recyclerView;
@@ -44,13 +45,10 @@ public class ScenarioSelectActivity extends AppCompatActivity {
             selectEnvironment();
         }
 
-        GridLayoutManager layoutManager = new GridLayoutManager(this, 3);
+        GridLayoutManager layoutManager = new GridLayoutManager(this, COL_SPAN);
         recyclerView.setLayoutManager(layoutManager);
         RecyclerView.Adapter adapter = new ScenariosAdaper(this,environmentId);
         recyclerView.setAdapter(adapter);
-
-        Log.d(TAG,"Number of items: " + adapter.getItemCount());
-
     }
 
     @Override
@@ -71,9 +69,12 @@ public class ScenarioSelectActivity extends AppCompatActivity {
         switch (item.getItemId()){
             case R.id.select_environment:
                 selectEnvironment();
-            default:
-                return super.onOptionsItemSelected(item);
+                break;
+            case R.id.start_mapping_mode:
+                startActivity(new Intent(this,ArActivity.class));
+                break;
         }
+        return super.onOptionsItemSelected(item);
     }
 
     private void selectEnvironment() {

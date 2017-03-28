@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,10 +20,14 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     private static final String TAG = ScenariosAdaper.class.getSimpleName();
 
-    private final int numScenarios = 7;
-    private  final String[] description =
-            {"All enabled", "path disabled", "motivation disabled",
-                    "floorplan disabled, 15s delay", "everything disabled" };
+    private final int numScenarios = 12;
+    private  final String[] description = {
+            "All enabled",
+            "path disabled",
+            "motivation disabled",
+            "Floorplan disabled",
+            "15s delay",
+            "everything disabled" };
 
     private Context mContext;
     private long environmentID;
@@ -36,7 +39,6 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
         public ViewHolder(View itemView) {
             super(itemView);
-            Log.d(TAG,"Creating View Holder");
             title = (TextView) itemView.findViewById(R.id.scenario_title);
             subtitle = (TextView) itemView.findViewById(R.id.scenario_subtitle);
             card = (CardView) itemView.findViewById(R.id.card_view);
@@ -57,12 +59,11 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        Log.d(TAG,"Binding item to view");
         ((ViewHolder) holder).title.setText("Scenario " + (position+1));
         ((ViewHolder) holder).subtitle.setText(
                 position < description.length
                         ? description[position]
-                        : description[description.length-1]);
+                        : "<no description>");
         ((ViewHolder) holder).card.setOnClickListener(new ScenarioClickListener(position));
 
     }
@@ -81,22 +82,31 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
         @Override
         public void onClick(View view) {
-            Log.d(TAG, "OnClick");
+            Intent i = getIntent();
             switch (position){
                 case 0:
-                    mContext.startActivity(getIntent(environmentID,true,true,true,0));
+                    mContext.startActivity(i);
                     break;
                 case 1:
-                    mContext.startActivity(getIntent(environmentID,false,true,true,0));
+                    i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED,false);
+                    mContext.startActivity(i);
                     break;
                 case 2:
-                    mContext.startActivity(getIntent(environmentID,true,false,true,0));
+                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
+                    mContext.startActivity(i);
                     break;
                 case 3:
-                    mContext.startActivity(getIntent(environmentID,true,true,false,15));
+                    i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+                    mContext.startActivity(i);
                     break;
                 case 4:
-                    mContext.startActivity(getIntent(environmentID,false,false,false,5));
+                    i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,15);
+                    break;
+                case 5:
+                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+                    mContext.startActivity(i);
                     break;
                 default:
                     Snackbar.make(view,"No Scenario defined",Snackbar.LENGTH_SHORT).show();
@@ -104,13 +114,9 @@ class ScenariosAdaper extends RecyclerView.Adapter {
             }
         }
 
-        Intent getIntent(long environmentID, boolean pathEnabled, boolean motivationEnabled, boolean floorplanEnabled, long delaySec){
+        Intent getIntent(){
             Intent i = new Intent(mContext, ArActivity.class);
             i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentID);
-            i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,floorplanEnabled);
-            i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,motivationEnabled);
-            i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED,pathEnabled);
-            i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,delaySec);
             return i;
         }
     }

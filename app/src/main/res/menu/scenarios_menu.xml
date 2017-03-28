@@ -3,4 +3,7 @@
     <item
         android:id="@+id/select_environment"
         android:title="Select Environment"/>
+    <item
+        android:id="@+id/start_mapping_mode"
+        android:title="Start in Mapping Mode"/>
 </menu>
