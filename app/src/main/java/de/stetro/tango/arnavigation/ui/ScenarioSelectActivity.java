@@ -28,7 +28,7 @@ public class ScenarioSelectActivity extends AppCompatActivity {
 
     private static final String SAVED_ENVIRONMENT_ID = "saved_environment";
     private static final String TAG = ScenarioSelectActivity.class.getSimpleName();
-    public static final int COL_SPAN = 4;
+    public static final int COL_SPAN = 3;
     private Long environmentId;
 
     RecyclerView recyclerView;
@@ -39,7 +39,7 @@ public class ScenarioSelectActivity extends AppCompatActivity {
         setContentView(R.layout.scenario_select);
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
 
-        SharedPreferences preferences = getPreferences(Context.MODE_PRIVATE);
+		SharedPreferences preferences = getPreferences(Context.MODE_PRIVATE);
         environmentId = preferences.getLong(SAVED_ENVIRONMENT_ID,0);
         if(environmentId == 0){
             selectEnvironment();
@@ -78,12 +78,13 @@ public class ScenarioSelectActivity extends AppCompatActivity {
     }
 
     private void selectEnvironment() {
-        new SelectEnvironmentFragment().setEnvironmentSelectionListener(new SelectEnvironmentFragment.EnvironmentSelectionListener() {
+        SelectEnvironmentFragment dialog = new SelectEnvironmentFragment().setEnvironmentSelectionListener(new SelectEnvironmentFragment.EnvironmentSelectionListener() {
             @Override
             public void onEnvironmentSelected(EnvironmentDAO environment) {
                 setEnvironment(environment);
             }
-        }).show(getFragmentManager(),"SelectEnvFragment");
+        });
+        dialog.show(this.getSupportFragmentManager(),"SelectEnvFragment");
     }
 
     public void setEnvironment(EnvironmentDAO environment) {

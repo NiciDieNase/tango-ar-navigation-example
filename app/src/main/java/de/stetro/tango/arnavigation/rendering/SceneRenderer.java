@@ -60,6 +60,9 @@ import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
 
 
 public class SceneRenderer extends RajawaliRenderer {
+
+
+
     private static final int QUAD_TREE_START = -60;
     private static final int QUAD_TREE_RANGE = 120;
     private static final String TAG = SceneRenderer.class.getSimpleName();
@@ -112,9 +115,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderPointCloud = true;
 
     public SceneRenderer(Context context) {
-        this(context,
-                new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9),
-                false,false,false);
+        this(context,getNewTree(),false,false,false);
     }
 
     public SceneRenderer(Context context, QuadTree data){
@@ -122,10 +123,7 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public SceneRenderer(Context context, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled) {
-        this(context);
-        this.floorplanEnabled = floorplanEnabled;
-        this.motivationEnabled = motivationEnabled;
-        this.pathEnabled = pathEnabled;
+        this(context,getNewTree(),floorplanEnabled,motivationEnabled,pathEnabled);
     }
 
     public SceneRenderer(Context arActivity, QuadTree tree, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled) {
@@ -134,6 +132,11 @@ public class SceneRenderer extends RajawaliRenderer {
         this.floorplanEnabled = floorplanEnabled;
         this.motivationEnabled = motivationEnabled;
         this.pathEnabled = pathEnabled;
+    }
+
+    @NonNull
+    private static QuadTree getNewTree() {
+        return new QuadTree(new Vector2(QUAD_TREE_START, QUAD_TREE_START), QUAD_TREE_RANGE, 9);
     }
 
     public void onLocalized() {

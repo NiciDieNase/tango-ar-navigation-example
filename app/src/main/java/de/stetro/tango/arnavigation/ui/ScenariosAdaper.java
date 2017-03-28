@@ -20,13 +20,13 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     private static final String TAG = ScenariosAdaper.class.getSimpleName();
 
-    private final int numScenarios = 12;
+    private final int numScenarios = 20;
     private  final String[] description = {
             "All enabled",
             "path disabled",
             "motivation disabled",
             "Floorplan disabled",
-            "15s delay",
+            "15s delay, Floorplan disabled",
             "everything disabled" };
 
     private Context mContext;
@@ -70,7 +70,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     @Override
     public int getItemCount() {
-        return numScenarios;
+        return description.length;
     }
 
     private class ScenarioClickListener implements View.OnClickListener {
@@ -100,7 +100,9 @@ class ScenariosAdaper extends RecyclerView.Adapter {
                     mContext.startActivity(i);
                     break;
                 case 4:
-                    i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,15);
+                    i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,15l);
+                    i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+                    mContext.startActivity(i);
                     break;
                 case 5:
                     i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);

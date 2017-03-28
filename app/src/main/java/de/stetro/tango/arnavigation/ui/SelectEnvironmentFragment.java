@@ -1,9 +1,9 @@
 package de.stetro.tango.arnavigation.ui;
 
 import android.app.Dialog;
-import android.app.DialogFragment;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
 
 import java.util.Iterator;
@@ -33,7 +33,7 @@ public class SelectEnvironmentFragment extends DialogFragment {
 	public Dialog onCreateDialog(Bundle savedInstanceState) {
 		Iterator<EnvironmentDAO> all = EnvironmentDAO.findAll(EnvironmentDAO.class);
 		if(!all.hasNext()){
-			return null;
+			this.dismiss();
 		}
 		final List<EnvironmentDAO> items = new LinkedList<>();
 		List<String> strings = new LinkedList<>();

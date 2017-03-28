@@ -1,8 +1,6 @@
 package de.stetro.tango.arnavigation.rendering;
 
 
-import android.util.Log;
-
 import org.rajawali3d.Object3D;
 import org.rajawali3d.materials.Material;
 import org.rajawali3d.math.vector.Vector2;
@@ -16,7 +14,7 @@ import de.stetro.tango.arnavigation.data.QuadTree;
 
 public class FloorPlan extends Object3D {
 
-    private static final int MAX_VERTICES = ( 60000 ) / 3;
+    private static final int MAX_VERTICES = ( 900000 ) / 3;
     private static final String TAG = FloorPlan.class.getSimpleName();
     private final float[] color;
     private QuadTree data;

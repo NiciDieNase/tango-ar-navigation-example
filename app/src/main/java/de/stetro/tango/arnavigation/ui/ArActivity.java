@@ -88,12 +88,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
+
 	// frame pairs for adf based ar pose tracking
 	public static final TangoCoordinateFramePair SOS_T_DEVICE_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
-
 	public static final TangoCoordinateFramePair DEVICE_T_PREVIOUS_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
@@ -103,6 +103,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
+
 	public static final TangoCoordinateFramePair ADF_T_SOS_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
@@ -113,17 +114,18 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private static final String TAG = ArActivity.class.getSimpleName();
 	public static final boolean LEARNINGMODE_ENABLED = true;
 	public static final boolean ENABLED_DEFAULT = true;
-
 	public static final String KEY_ENVIRONMENT_ID = "environment_id";
+
 	protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
 	protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
 	protected Tango tango;
-	private long motivationDelay = 0 * 1000;
-
+	private long motivationDelay = 0;
 	private long environment_id;
+
 	private PoiAdapter poiAdapter;
 	private PoiAdapter mAdapter;
 	private boolean motivating;
+	private Snackbar recognzingSnackbar;
 
 	protected TangoUx tangoUx;
 	protected TangoCameraIntrinsics intrinsics;
@@ -204,7 +206,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED, ENABLED_DEFAULT);
 			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, ENABLED_DEFAULT);
 			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, ENABLED_DEFAULT);
-			motivationDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0) * 1000;
+			motivationDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
+			Snackbar.make(uxLayout,"Delay = " + motivationDelay, Snackbar.LENGTH_SHORT).show();
 
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
@@ -223,7 +226,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				fabPause.hide();
 				fabSave.hide();
 				updatePOIs = true;
-				showProgressBar();
+				setRecognizingSnackbar(true);
 			}
 
 		}
@@ -411,7 +414,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		getMenuInflater().inflate(R.menu.main_menu, menu);
+		if(environment_id != 0){
+			getMenuInflater().inflate(R.menu.main_menu, menu);
+		}
 		return super.onCreateOptionsMenu(menu);
 	}
 
@@ -435,15 +440,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				toggleFloorplan = true;
 				break;
 			case R.id.load_environment:
-				new SelectEnvironmentFragment().setEnvironmentSelectionListener(this).show(getFragmentManager(),"loadEnvDialog");
+				new SelectEnvironmentFragment().setEnvironmentSelectionListener(this).show(getSupportFragmentManager(),"loadEnvDialog");
 				break;
 			case R.id.clear_pois:
-//				if(environment_id != 0){
-//					PoiDAO.deleteAll(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
-//				} else {
-//					PoiDAO.deleteAll(PoiDAO.class);
-//				}
-//				updatePOIs = true;
+				if(environment_id != 0){
+					PoiDAO.deleteAll(PoiDAO.class, "environment_id = ?", String.valueOf(environment_id));
+				} else {
+					PoiDAO.deleteAll(PoiDAO.class);
+				}
+				updatePOIs = true;
 				break;
 			case R.id.action_end_motivation:
 				new AsyncTask<Void, Integer, Object>() {
@@ -468,7 +473,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				hideProgressBar();
+				setRecognizingSnackbar(false);
 				if(mAdapter != null && mAdapter.getItemCount() > 0){
 					mDrawerLayout.openDrawer(Gravity.LEFT);
 				}
@@ -514,6 +519,17 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			e.printStackTrace();
 		}
 		return tree;
+	}
+
+	private void setRecognizingSnackbar(boolean enabled){
+		if(enabled){
+			recognzingSnackbar = Snackbar.make(uxLayout, R.string.recognizing_area_explaination, Snackbar.LENGTH_INDEFINITE);
+			recognzingSnackbar.show();
+		} else {
+			if(recognzingSnackbar != null){
+				recognzingSnackbar.dismiss();
+			}
+		}
 	}
 
 	private void hideProgressBar() {
@@ -739,7 +755,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 							renderer.onLocalized();
 							onInitialLocalization();
 						}
-					}, motivationDelay);
+					}, motivationDelay * 1000);
 					Log.d(TAG,"Initial Localization");
 				}
 				localized = true;
