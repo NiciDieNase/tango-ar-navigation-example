@@ -11,12 +11,15 @@ import org.rajawali3d.math.vector.Vector3;
 import java.nio.FloatBuffer;
 import java.util.List;
 
+import de.stetro.tango.arnavigation.data.EnvironmentMapper;
 import de.stetro.tango.arnavigation.data.QuadTree;
 
 
 public class FloorPlan extends Object3D {
 
-    private static final int MAX_VERTICES = ( 900000 ) / 3;
+    private static final int MAX_VERTICES = (int) (Math.pow(4, EnvironmentMapper.QUAD_TREE_DEPTH) * 4);
+    // 4^9 is the max # of leafes in our quadtree, and for each node we need 4 vertices
+
     private static final String TAG = FloorPlan.class.getSimpleName();
     private final float[] color;
     private QuadTree data;
