@@ -1,6 +1,8 @@
 package de.stetro.tango.arnavigation.rendering;
 
 
+import android.util.Log;
+
 import org.rajawali3d.Object3D;
 import org.rajawali3d.materials.Material;
 import org.rajawali3d.math.vector.Vector2;
@@ -50,16 +52,18 @@ public class FloorPlan extends Object3D {
 
     public void rebuildPoints() {
         List<Vector2> filledPoints = data.getFilledEdgePointsAsPolygon();
-        if(filledPoints.size() * 3 > MAX_VERTICES){
-            throw new RuntimeException("To many tiles");
-        }
+        Log.d(TAG, String.format("%1$d Vertices left", MAX_VERTICES - filledPoints.size()*3));
+//        if(filledPoints.size() * 3 > MAX_VERTICES){
+//            throw new RuntimeException("To many tiles");
+//        }
         FloatBuffer points = FloatBuffer.allocate(filledPoints.size() * 3);
         for (Vector2 filledPoint : filledPoints) {
             points.put((float) filledPoint.getX());
             points.put(0);
             points.put((float) filledPoint.getY());
         }
-        updatePoints(filledPoints.size() * 6 / 4, points);
+//        updatePoints(filledPoints.size() * 6 / 4, points);
+        updatePoints(filledPoints.size(), points);
     }
 
     private void init() {
@@ -100,9 +104,46 @@ public class FloorPlan extends Object3D {
     }
 
     private void updatePoints(int pointCount, FloatBuffer pointCloudBuffer) {
-        mGeometry.setNumIndices(pointCount);
+//        if(pointCount <= 0){
+//            return;
+//        }
+//        float[] vertices = new float[pointCount * 3];
+//        float[] normals = new float[pointCount * 6 / 4];
+//        int[] indices = new int[pointCount * 6 / 4];
+//        for (int i = 0; i < indices.length; i++) {
+//            switch (i%6){
+//                case 0:
+//                    indices[i] = 0;
+//                    break;
+//                case 1:
+//                case 4:
+//                    indices[i] = 1;
+//                    break;
+//                case 2:
+//                case 3:
+//                    indices[i] = 2;
+//                    break;
+//                case 5:
+//                    indices[i] = 3;
+//            }
+//            indices[i] += (i/6)*4;
+//            if(i % 3 == 1){
+//                normals[i] = 1;
+//            } else {
+//                normals[i] = 0;
+//            }
+//        }
+//        pointCloudBuffer.position(0);
+//        pointCloudBuffer.get(vertices);
+//        Log.d(TAG,vertices.length + " " + normals.length + " " + indices.length);
+
+//        setData(vertices,normals,null,null,indices,false);
+//        mGeometry.setNumIndices(indices.length);
+//        mGeometry.setVertices(vertices);
+//        mGeometry.changeBufferData(mGeometry.getVertexBufferInfo(), mGeometry.getVertices(), 0, pointCount * 3);
+        mGeometry.setNumIndices(pointCount * 6 /4);
         mGeometry.setVertices(pointCloudBuffer);
-        mGeometry.changeBufferData(mGeometry.getVertexBufferInfo(), mGeometry.getVertices(), 0, pointCount * 3);
+        mGeometry.changeBufferData(mGeometry.getVertexBufferInfo(), mGeometry.getVertices(), 0, pointCount * 3 * 6 / 4);
     }
 
     public QuadTree getData() {
