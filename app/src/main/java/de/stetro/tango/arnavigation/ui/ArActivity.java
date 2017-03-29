@@ -414,7 +414,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		if(environment_id != 0){
+		if(environment_id == 0){
 			getMenuInflater().inflate(R.menu.main_menu, menu);
 		}
 		return super.onCreateOptionsMenu(menu);
