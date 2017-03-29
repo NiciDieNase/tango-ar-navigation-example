@@ -715,6 +715,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	private class mTangoUpdateListener extends Tango.TangoUpdateCallback {
 
+		private long lastPointcloudTimestamp = 0l;
+		DescriptiveStatistics pointCloudIntervalls = new DescriptiveStatistics(1000);
+
 		@Override
 		public void onFrameAvailable(int cameraId) {
 			if (cameraId == ACTIVE_CAMERA_INTRINSICS) {
@@ -771,6 +774,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			if(!mapper.isRunning() && capturePointcloud){
 				mapper.mapPointCloud(pointCloud);
 			}
+			if(lastPointcloudTimestamp != 0.0){
+				long t = System.currentTimeMillis() - lastPointcloudTimestamp;
+				pointCloudIntervalls.addValue(t);
+				Log.d(TAG,String.format("Time since last pointcloud: %1$d avg: %2$.2f",t, pointCloudIntervalls.getMean()));
+			}
+			lastPointcloudTimestamp =  System.currentTimeMillis();
 		}
 
 	}
