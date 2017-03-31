@@ -94,11 +94,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
+
 	public static final TangoCoordinateFramePair DEVICE_T_PREVIOUS_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_PREVIOUS_DEVICE_POSE,
 					TangoPoseData.COORDINATE_FRAME_DEVICE);
-
 	public static final TangoCoordinateFramePair ADF_T_DEVICE_FRAME_PAIR =
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
@@ -108,6 +108,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new TangoCoordinateFramePair(
 					TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION,
 					TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE);
+
 	// This changes the Camera Texture and Intrinsics
 	protected static final int ACTIVE_CAMERA_INTRINSICS = TangoCameraIntrinsics.TANGO_CAMERA_COLOR;
 	protected static final int INVALID_TEXTURE_ID = -1;
@@ -115,11 +116,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	public static final boolean LEARNINGMODE_ENABLED = true;
 	public static final boolean ENABLED_DEFAULT = true;
 	public static final String KEY_ENVIRONMENT_ID = "environment_id";
-
 	protected AtomicBoolean tangoIsConnected = new AtomicBoolean(false);
+
 	protected AtomicBoolean tangoFrameIsAvailable = new AtomicBoolean(false);
 	protected Tango tango;
-	private long motivationDelay = 0;
+	private long motivationEndDelay = 0;
+	private int motivationStartDelay = 2000;
 	private long environment_id;
 
 	private PoiAdapter poiAdapter;
@@ -206,8 +208,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED, ENABLED_DEFAULT);
 			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, ENABLED_DEFAULT);
 			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, ENABLED_DEFAULT);
-			motivationDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
-			Snackbar.make(uxLayout,"Delay = " + motivationDelay, Snackbar.LENGTH_SHORT).show();
+			motivationEndDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
+			Snackbar.make(uxLayout,"Delay = " + motivationEndDelay, Snackbar.LENGTH_SHORT).show();
 
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
@@ -741,9 +743,16 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE){
 				if(!motivating && environment_id != 0){
-					Vector3 position = ScenePoseCalculator.
+					final Vector3 position = ScenePoseCalculator.
 							toOpenGlCameraPose(pose, extrinsics).getPosition();
-					renderer.startMotivation(position.z);
+					new Timer().schedule(new TimerTask(){
+						@Override
+						public void run() {
+							if(!localized){
+								renderer.startMotivation(position.z);
+							}
+						}
+					}, motivationStartDelay);
 					motivating = true;
 				}
 			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
@@ -758,7 +767,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 							renderer.onLocalized();
 							onInitialLocalization();
 						}
-					}, motivationDelay * 1000);
+					}, motivationEndDelay * 1000);
 					Log.d(TAG,"Initial Localization");
 				}
 				localized = true;
