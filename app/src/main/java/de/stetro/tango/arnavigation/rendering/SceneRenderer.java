@@ -113,6 +113,9 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean pathEnabled = false;
     private boolean floorplanEnabled = false;
     private boolean renderPointCloud = true;
+    private boolean renderPath2 = false;
+    private boolean path2Enabled = false;
+    private Line3D path2;
 
     public SceneRenderer(Context context) {
         this(context,getNewTree(),false,false,false);
@@ -127,11 +130,16 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public SceneRenderer(Context arActivity, QuadTree tree, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled) {
+        this(arActivity,tree,floorplanEnabled,motivationEnabled,pathEnabled,false);
+    }
+
+    public SceneRenderer(Context arActivity, QuadTree tree, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled, boolean path2Enabled) {
         super(arActivity);
         this.data = tree;
         this.floorplanEnabled = floorplanEnabled;
         this.motivationEnabled = motivationEnabled;
         this.pathEnabled = pathEnabled;
+        this.path2Enabled = path2Enabled;
     }
 
     @NonNull
@@ -287,7 +295,7 @@ public class SceneRenderer extends RajawaliRenderer {
             for (int i = 0; i < motivationObjects.size(); i++) {
                 Object3D obj = motivationObjects.get(i);
                 Animation3D animation = setRemoveAnimation(obj);
-                animation.setDelayDelta(i * 0.25);
+                animation.setDelayDelta(i * 0.05);
                 animation.play();
             }
             new Timer().schedule(new TimerTask() {
@@ -427,6 +435,9 @@ public class SceneRenderer extends RajawaliRenderer {
                         scene.unregisterAnimation(anim);
                     }
                     pathAnimations.clear();
+                    if(this.path2 != null){
+                        scene.removeChild(this.path2);
+                    }
 
                     // Calculate Path and get intermediate Points
                     List<Vector2> pathBetween = finder.findPathBetween(startPoint, endPoint);
@@ -436,38 +447,50 @@ public class SceneRenderer extends RajawaliRenderer {
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                     }
                     // Calculate distance between Objects placed on path
-                    double v1 = 0.8 / (curvePath.getLength(100)/100) ;
+                    double v1 = 1.5 / (curvePath.getLength(100)/100) ;
                     Log.d(TAG,"Calculated Number of segments: " + v1);
                     int v2 = (int)v1;
 
                     // Add objects to mark Path
                     Stack linePoints = new Stack();
+                    Stack path4 = new Stack();
                     for (int i = 0; i < 100; i++) {
                         Vector3 v = new Vector3();
                         curvePath.calculatePoint(v,i / 100f);
                         linePoints.add(v);
-                        if(renderSpheres && i%v2 == 0){
-                            Sphere s = new Sphere(0.10f,20,20);
-                            s.setPosition(v);
-                            s.setY(pathHeight-.3);
-                            s.setMaterial(yellow);
-                            pathObjects.add(s);
-                        }
-                        if(renderCoins && i%v2 == 0){
-                            Object3D coin = mCoin.clone(true,true);
-                            coin.setPosition(v);
-                            coin.setScale(10.0);
-                            coin.setVisible(true);
-                            coin.setY(pathHeight);
-                            pathObjects.add(coin);
-                            Animation3D anim = setRotateAnimation(coin);
-                            pathAnimations.add(anim);
+                        if(i%v2 == 0){
+                            if(renderSpheres){
+                                Sphere s = new Sphere(0.10f,20,20);
+                                s.setPosition(v);
+                                s.setY(pathHeight-.3);
+                                s.setMaterial(yellow);
+                                pathObjects.add(s);
+                            }
+                            if(renderCoins){
+                                Object3D coin = mCoin.clone(true,true);
+                                coin.setPosition(v);
+                                coin.setScale(10.0);
+                                coin.setVisible(true);
+                                coin.setY(pathHeight);
+                                pathObjects.add(coin);
+                                Animation3D anim = setRotateAnimation(coin);
+                                pathAnimations.add(anim);
+                            }
+                            if(i % (v2*4) == 0){
+                                path4.add(v);
+                            }
                         }
                     }
                     this.path = new Line3D(linePoints, 10, Color.BLUE);
                     this.path.setMaterial(blue);
                     if(pathEnabled){
                         scene.addChild(this.path);
+//                    }
+//                    if(path2Enabled){
+                        this.path2 = new Line3D(path4, 30, Color.RED);
+                        this.path2.setMaterial(red);
+                        this.path2.setTransparent(true);
+                        scene.addChild(this.path2);
                     }
                     // Add Objects and start Animations
                     for(Object3D obj:pathObjects){
