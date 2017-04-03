@@ -151,4 +151,15 @@ public class MapView extends View implements View.OnTouchListener, MapTransforma
         this.currentPositionTransformed = this.currentPosition.clone().multiply(activeTransformation);
         postInvalidate();
     }
+
+    public double[] getActiveTransformation() {
+        double[] a =  new double[16];
+        activeTransformation.toArray(a);
+        return a;
+    }
+
+    public void setActiveTransformation(double[] transformation) {
+        this.activeTransformation = new Matrix4(transformation);
+        this.transformPoints();
+    }
 }

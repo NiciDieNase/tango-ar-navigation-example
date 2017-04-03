@@ -87,6 +87,8 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
+	private EnvironmentDAO environment;
+
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 
 	// frame pairs for adf based ar pose tracking
@@ -168,8 +170,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private boolean newQuadtree = false;
 	private boolean updatePOIs = false;
 	private QuadTree newMapData;
-	private LoadingDialogFragment dialog;
 	private boolean enableLoadingSpinner;
+	private LoadingDialogFragment dialog;
 
 	private ActivityState currentState = ActivityState.undefined;
 
@@ -202,29 +204,36 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		setupSurfaceView();
 
 		Bundle extras = getIntent().getExtras();
-		boolean floorplanEnabled = ENABLED_DEFAULT;
-		boolean motivationEnabled = ENABLED_DEFAULT;
-		boolean pathEnabled = ENABLED_DEFAULT;
-		boolean path2Enabled = ENABLED_DEFAULT;
+		boolean enabledDefault = ENABLED_DEFAULT;
+		boolean floorplanEnabled = enabledDefault;
+		boolean motivationEnabled = enabledDefault;
+		boolean pathEnabled = enabledDefault;
+		boolean path2Enabled = enabledDefault;
+		boolean coinsEnabled = enabledDefault;
 		if (extras != null) {
 			// get what to render from intent
-			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED, ENABLED_DEFAULT);
-			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, ENABLED_DEFAULT);
-			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, ENABLED_DEFAULT);
-			path2Enabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH2_ENABLED, ENABLED_DEFAULT);
+			enabledDefault = extras.getBoolean(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, ENABLED_DEFAULT);
+			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED, enabledDefault);
+			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, enabledDefault);
+			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, enabledDefault);
+			path2Enabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH2_ENABLED, enabledDefault);
+			coinsEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_COINS_ENABLED, enabledDefault);
 			motivationEndDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
-			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, ENABLED_DEFAULT);
+			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, enabledDefault);
 			Snackbar.make(uxLayout,"Delay = " + motivationEndDelay, Snackbar.LENGTH_SHORT).show();
 
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
-				EnvironmentDAO environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
+				environment = EnvironmentDAO.findById(EnvironmentDAO.class, environment_id);
+//				if(environment.getMapTransform() != null){
+//					mapView.setActiveTransformation(environment.getMapTransform());
+//				}
 				adfuuid = environment.getADFUUID();
 				tree = loadFromFile(environment.getADFUUID());
 				if (tree != null) {
 					mapper = new EnvironmentMapper(tree);
 					mapper.setFloorLevel(environment.getFloorLevel());
-					renderer = new SceneRenderer(this, tree,floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled);
+					renderer = new SceneRenderer(this, tree,floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled,coinsEnabled);
 					currentState = ActivityState.localizing;
 				} else {
 					Log.d(TAG,"Failed to load map");
@@ -239,7 +248,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		}
 		if(mapper == null){
 			mapper = new EnvironmentMapper();
-			renderer = new SceneRenderer(this,floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled);
+			renderer = new SceneRenderer(this,floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled,coinsEnabled);
 			currentState = ActivityState.mapping;
 			fabAddPoi.hide();
 		}
@@ -300,9 +309,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		}
 
 		if(enableLoadingSpinner){
-			dialog = new LoadingDialogFragment();
-			dialog.setMessage("Please walk around to localize");
-			dialog.show(getFragmentManager(),"localizing");
+			showProgressBar("Please walk around to localize");
 		}
 	}
 
@@ -423,6 +430,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				tangoUx.stop();
 			}
 		}
+//		environment.setMapTransform(mapView.getActiveTransformation());
+//		environment.save();
 	}
 
 	@Override
@@ -486,9 +495,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				if(dialog != null){
-					dialog.dismiss();
-				}
+				hideProgressBar();
 				setRecognizingSnackbar(false);
 				if(mAdapter != null && mAdapter.getItemCount() > 0){
 					mDrawerLayout.openDrawer(Gravity.LEFT);
@@ -548,15 +555,16 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		}
 	}
 
-	private void hideProgressBar() {
-		progressBar.setVisibility(View.INVISIBLE);
+	public void hideProgressBar() {
+		if(dialog != null){
+			dialog.dismiss();
+		}
 	}
 
-	private void showProgressBar() {
-		progressBar.setVisibility(View.VISIBLE);
-		progressBar.setProgress(0);
-		progressBar.setMax(3);
-		progressBar.setIndeterminate(false);
+	public void showProgressBar(String msg) {
+		dialog = new LoadingDialogFragment();
+		dialog.setMessage(msg);
+		dialog.show(getFragmentManager(),"progress_dialog");
 	}
 
 	private void message(final int message_resource) {
@@ -817,10 +825,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new AsyncTask<Object, Integer, Long>() {
 				@Override
 				protected void onPreExecute() {
-//					showProgressBar();
-					dialog = new LoadingDialogFragment();
-					dialog.setMessage("Saving environment");
-					dialog.show(getFragmentManager(),"saving_environment");
+					showProgressBar("Saving environment");
 					fabSave.hide();
 					fabPause.hide();
 					Log.d(TAG, "Saving environment");
@@ -849,10 +854,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 				@Override
 				protected void onPostExecute(Long id) {
-//					hideProgressBar();
-					if(dialog != null){
-						dialog.dismiss();
-					}
+					hideProgressBar();
 					Log.d(TAG, "Saved environment with id :" + id);
 					loadEnvironment(id);
 				}

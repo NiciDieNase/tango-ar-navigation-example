@@ -22,13 +22,15 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     private final int numScenarios = 20;
     private  final String[] description = {
-            "All enabled",
-            "path disabled",
-            "motivation disabled",
+            "everything, loadingspinner, no motivation", // 0
+            "only path2",
+            "motivation disabled",                      //2
             "Floorplan disabled",
-            "15s delay, Floorplan disabled",
+            "7s delay, Floorplan disabled",             //4
             "everything disabled",
-            "LoadingSpinner, no motivation, 10s"};
+            "LoadingSpinner, no motivation, 10s",      //6
+            "coins only"
+    };
 
     private Context mContext;
     private long environmentID;
@@ -60,7 +62,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        ((ViewHolder) holder).title.setText("Scenario " + (position+1));
+        ((ViewHolder) holder).title.setText("Scenario " + (position));
         ((ViewHolder) holder).subtitle.setText(
                 position < description.length
                         ? description[position]
@@ -86,37 +88,49 @@ class ScenariosAdaper extends RecyclerView.Adapter {
             Intent i = getIntent();
             switch (position){
                 case 0:
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
+                    i.putExtra(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, true);
+                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, false);
                     mContext.startActivity(i);
                     break;
                 case 1:
-                    i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
+                    i.putExtra(ScenarioSelectActivity.KEY_PATH2_ENABLED,true);
                     mContext.startActivity(i);
                     break;
                 case 2:
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
                     i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
                     mContext.startActivity(i);
                     break;
                 case 3:
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
                     i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
                     mContext.startActivity(i);
                     break;
                 case 4:
-                    i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,15l);
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
+                    i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,7l);
                     i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
                     mContext.startActivity(i);
                     break;
                 case 5:
-                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
-                    i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED,false);
-                    i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
                     mContext.startActivity(i);
                     break;
                 case 6:
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
                     i.putExtra(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, true);
                     i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, false);
                     i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
                     i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,10l);
                     mContext.startActivity(i);
+                    break;
+                case 7:
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_COINS_ENABLED, true);
+                    mContext.startActivity(i);
+                    break;
                 default:
                     Snackbar.make(view,"No Scenario defined",Snackbar.LENGTH_SHORT).show();
                     break;

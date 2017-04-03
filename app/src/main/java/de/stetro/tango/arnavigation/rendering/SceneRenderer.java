@@ -57,6 +57,7 @@ import de.stetro.tango.arnavigation.data.NoPathException;
 import de.stetro.tango.arnavigation.data.PathFinder;
 import de.stetro.tango.arnavigation.data.QuadTree;
 import de.stetro.tango.arnavigation.data.persistence.PoiDAO;
+import de.stetro.tango.arnavigation.ui.ArActivity;
 
 
 public class SceneRenderer extends RajawaliRenderer {
@@ -115,6 +116,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private boolean renderPointCloud = true;
     private boolean renderPath2 = false;
     private boolean path2Enabled = false;
+    private final boolean coinsEnabled;
     private Line3D path2;
 
     public SceneRenderer(Context context) {
@@ -130,21 +132,26 @@ public class SceneRenderer extends RajawaliRenderer {
     }
 
     public SceneRenderer(Context arActivity, QuadTree tree, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled) {
-        this(arActivity,tree,floorplanEnabled,motivationEnabled,pathEnabled,false);
+        this(arActivity,tree,floorplanEnabled,motivationEnabled,pathEnabled,false,false);
     }
 
     public SceneRenderer(Context arActivity, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled, boolean path2Enabled) {
-        this(arActivity,getNewTree(),floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled);
+        this(arActivity,getNewTree(),floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled,false);
+    }
+
+    public SceneRenderer(Context arActivity, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled, boolean path2Enabled, boolean coinsEnabled) {
+        this(arActivity,getNewTree(),floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled,coinsEnabled);
     }
 
 
-    public SceneRenderer(Context arActivity, QuadTree tree, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled, boolean path2Enabled) {
+    public SceneRenderer(Context arActivity, QuadTree tree, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled, boolean path2Enabled, boolean coinsEnabled) {
         super(arActivity);
         this.data = tree;
         this.floorplanEnabled = floorplanEnabled;
         this.motivationEnabled = motivationEnabled;
         this.pathEnabled = pathEnabled;
         this.path2Enabled = path2Enabled;
+        this.coinsEnabled = coinsEnabled;
     }
 
     @NonNull
@@ -449,11 +456,23 @@ public class SceneRenderer extends RajawaliRenderer {
                     }
 
                     // Calculate Path and get intermediate Points
+                    ((ArActivity)mContext).showProgressBar("Calculating Route");
                     List<Vector2> pathBetween = finder.findPathBetween(startPoint, endPoint);
 
                     CatmullRomCurve3D curvePath = new CatmullRomCurve3D();
-                    for (Vector2 vector2 : pathBetween) {
+                    CatmullRomCurve3D curve2Path = new CatmullRomCurve3D();
+
+                    Vector2 a = pathBetween.get(0);
+                    Vector2 b = pathBetween.get(1);
+                    Vector2 c = new Vector2(2 * a.getX() - b.getX(), 2 * a.getY() - b.getY());
+                    pathBetween.add(0,c);
+
+                    for (int i = 0; i < pathBetween.size(); i++){
+                        Vector2 vector2 = pathBetween.get(i);
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
+                        if(i % 4 == 0){
+                            curve2Path.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel()+.7, vector2.getY() ));
+                        }
                     }
                     // Calculate distance between Objects placed on path
                     double v1 = 1.5 / (curvePath.getLength(100)/100) ;
@@ -462,7 +481,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
                     // Add objects to mark Path
                     Stack linePoints = new Stack();
-                    Stack path4 = new Stack();
+                    Stack path2Points = new Stack();
                     for (int i = 0; i < 100; i++) {
                         Vector3 v = new Vector3();
                         curvePath.calculatePoint(v,i / 100f);
@@ -475,7 +494,7 @@ public class SceneRenderer extends RajawaliRenderer {
                                 s.setMaterial(yellow);
                                 pathObjects.add(s);
                             }
-                            if(renderCoins){
+                            if(renderCoins && coinsEnabled){
                                 Object3D coin = mCoin.clone(true,true);
                                 coin.setPosition(v);
                                 coin.setScale(10.0);
@@ -485,13 +504,16 @@ public class SceneRenderer extends RajawaliRenderer {
                                 Animation3D anim = setRotateAnimation(coin);
                                 pathAnimations.add(anim);
                             }
-                            if(i % (v2*4) == 0){
-                                path4.add(v);
-                            }
-                            if(i == 100 && path4.size() < 2){
-                                path4.add(v);
-                            }
+//                            if((i % (v2*4)) == 0){
+//                                path2Points.add(v);
+//                            }
+//                            if(i == 100 && path2Points.size() < 2){
+//                                path2Points.add(v);
+//                            }
                         }
+                        Vector3 w = new Vector3();
+                        curve2Path.calculatePoint(w, i/100f);
+                        path2Points.add(w);
                     }
                     this.path = new Line3D(linePoints, 10, Color.BLUE);
                     this.path.setMaterial(blue);
@@ -499,7 +521,7 @@ public class SceneRenderer extends RajawaliRenderer {
                         scene.addChild(this.path);
                     }
                     if(path2Enabled){
-                        this.path2 = new Line3D(path4, 200, Color.RED);
+                        this.path2 = new Line3D(path2Points, 5000.0f, Color.RED);
                         this.path2.setMaterial(red);
                         scene.addChild(this.path2);
                     }
@@ -518,6 +540,7 @@ public class SceneRenderer extends RajawaliRenderer {
                     }
                 } finally {
                     renderPath = false;
+                    ((ArActivity)mContext).hideProgressBar();
                 }
             }
         }
