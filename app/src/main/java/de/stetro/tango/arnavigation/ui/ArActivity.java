@@ -213,7 +213,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, ENABLED_DEFAULT);
 			path2Enabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH2_ENABLED, ENABLED_DEFAULT);
 			motivationEndDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
-			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, false);
+			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, ENABLED_DEFAULT);
 			Snackbar.make(uxLayout,"Delay = " + motivationEndDelay, Snackbar.LENGTH_SHORT).show();
 
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
