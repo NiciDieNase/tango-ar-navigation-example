@@ -168,6 +168,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private boolean newQuadtree = false;
 	private boolean updatePOIs = false;
 	private QuadTree newMapData;
+	private LoadingDialogFragment dialog;
+	private boolean enableLoadingSpinner;
 
 	private ActivityState currentState = ActivityState.undefined;
 
@@ -200,15 +202,18 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		setupSurfaceView();
 
 		Bundle extras = getIntent().getExtras();
-		boolean floorplanEnabled = true;
-		boolean motivationEnabled = true;
-		boolean pathEnabled = true;
+		boolean floorplanEnabled = ENABLED_DEFAULT;
+		boolean motivationEnabled = ENABLED_DEFAULT;
+		boolean pathEnabled = ENABLED_DEFAULT;
+		boolean path2Enabled = ENABLED_DEFAULT;
 		if (extras != null) {
 			// get what to render from intent
 			floorplanEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED, ENABLED_DEFAULT);
 			motivationEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, ENABLED_DEFAULT);
 			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, ENABLED_DEFAULT);
+			path2Enabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH2_ENABLED, ENABLED_DEFAULT);
 			motivationEndDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
+			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, false);
 			Snackbar.make(uxLayout,"Delay = " + motivationEndDelay, Snackbar.LENGTH_SHORT).show();
 
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
@@ -219,7 +224,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				if (tree != null) {
 					mapper = new EnvironmentMapper(tree);
 					mapper.setFloorLevel(environment.getFloorLevel());
-					renderer = new SceneRenderer(this, tree,floorplanEnabled,motivationEnabled,pathEnabled);
+					renderer = new SceneRenderer(this, tree,floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled);
 					currentState = ActivityState.localizing;
 				} else {
 					Log.d(TAG,"Failed to load map");
@@ -228,13 +233,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				fabPause.hide();
 				fabSave.hide();
 				updatePOIs = true;
-				setRecognizingSnackbar(true);
+//				setRecognizingSnackbar(true);
 			}
 
 		}
 		if(mapper == null){
 			mapper = new EnvironmentMapper();
-			renderer = new SceneRenderer(this,floorplanEnabled,motivationEnabled,pathEnabled);
+			renderer = new SceneRenderer(this,floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled);
 			currentState = ActivityState.mapping;
 			fabAddPoi.hide();
 		}
@@ -292,6 +297,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			setupDrawer(environment_id);
 		} else {
 			mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+		}
+
+		if(enableLoadingSpinner){
+			dialog = new LoadingDialogFragment();
+			dialog.setMessage("Please walk around to localize");
+			dialog.show(getFragmentManager(),"localizing");
 		}
 	}
 
@@ -475,6 +486,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
+				if(dialog != null){
+					dialog.dismiss();
+				}
 				setRecognizingSnackbar(false);
 				if(mAdapter != null && mAdapter.getItemCount() > 0){
 					mDrawerLayout.openDrawer(Gravity.LEFT);
@@ -742,18 +756,20 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			}
 			if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE){
-				if(!motivating && environment_id != 0){
-					final Vector3 position = ScenePoseCalculator.
-							toOpenGlCameraPose(pose, extrinsics).getPosition();
-					new Timer().schedule(new TimerTask(){
-						@Override
-						public void run() {
-							if(!localized){
-								renderer.startMotivation(position.z);
+				if(environment_id != 0){
+					if(!motivating) {
+						final Vector3 position = ScenePoseCalculator.
+								toOpenGlCameraPose(pose, extrinsics).getPosition();
+						new Timer().schedule(new TimerTask(){
+							@Override
+							public void run() {
+								if(!localized){
+									renderer.startMotivation(position.z);
+								}
 							}
-						}
-					}, motivationStartDelay);
-					motivating = true;
+						}, motivationStartDelay);
+						motivating = true;
+					}
 				}
 			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE) {
@@ -801,7 +817,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			new AsyncTask<Object, Integer, Long>() {
 				@Override
 				protected void onPreExecute() {
-					showProgressBar();
+//					showProgressBar();
+					dialog = new LoadingDialogFragment();
+					dialog.setMessage("Saving environment");
+					dialog.show(getFragmentManager(),"saving_environment");
 					fabSave.hide();
 					fabPause.hide();
 					Log.d(TAG, "Saving environment");
@@ -830,7 +849,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 				@Override
 				protected void onPostExecute(Long id) {
-					hideProgressBar();
+//					hideProgressBar();
+					if(dialog != null){
+						dialog.dismiss();
+					}
 					Log.d(TAG, "Saved environment with id :" + id);
 					loadEnvironment(id);
 				}

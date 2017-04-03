@@ -25,6 +25,8 @@ public class ScenarioSelectActivity extends AppCompatActivity {
     public static final String KEY_ENVIRONMENT_ID = "environment_id";
     public static final String KEY_FLOORPLAN_ENABLED = "floorplan_enabled";
     public static final String KEY_DELAY_SEC = "delay_seconds";
+    public static final String KEY_PATH2_ENABLED = "path2_enabled";
+	public static final String KEY_LOADINGSPINNER_ENABLED = "spinner_enabled";
 
     private static final String SAVED_ENVIRONMENT_ID = "saved_environment";
     private static final String TAG = ScenarioSelectActivity.class.getSimpleName();

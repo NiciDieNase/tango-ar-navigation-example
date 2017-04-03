@@ -27,7 +27,8 @@ class ScenariosAdaper extends RecyclerView.Adapter {
             "motivation disabled",
             "Floorplan disabled",
             "15s delay, Floorplan disabled",
-            "everything disabled" };
+            "everything disabled",
+            "LoadingSpinner, no motivation, 10s"};
 
     private Context mContext;
     private long environmentID;
@@ -110,6 +111,12 @@ class ScenariosAdaper extends RecyclerView.Adapter {
                     i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
                     mContext.startActivity(i);
                     break;
+                case 6:
+                    i.putExtra(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, true);
+                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, false);
+                    i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,10l);
+                    mContext.startActivity(i);
                 default:
                     Snackbar.make(view,"No Scenario defined",Snackbar.LENGTH_SHORT).show();
                     break;

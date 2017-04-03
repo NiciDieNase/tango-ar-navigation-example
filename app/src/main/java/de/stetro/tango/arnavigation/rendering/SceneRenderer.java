@@ -133,6 +133,11 @@ public class SceneRenderer extends RajawaliRenderer {
         this(arActivity,tree,floorplanEnabled,motivationEnabled,pathEnabled,false);
     }
 
+    public SceneRenderer(Context arActivity, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled, boolean path2Enabled) {
+        this(arActivity,getNewTree(),floorplanEnabled,motivationEnabled,pathEnabled,path2Enabled);
+    }
+
+
     public SceneRenderer(Context arActivity, QuadTree tree, boolean floorplanEnabled, boolean motivationEnabled, boolean pathEnabled, boolean path2Enabled) {
         super(arActivity);
         this.data = tree;
@@ -339,10 +344,14 @@ public class SceneRenderer extends RajawaliRenderer {
             }
         }
         pathObjects.removeAll(removeElements);
+        List<Animation3D> animations = new ArrayList();
         for(Object3D obj: motivationObjects){
             if(horizontalDistance(obj.getPosition(),position) < CLEAR_DISTANCE){
-                setRemoveAnimation(obj).play();
+                animations.add(setRemoveAnimation(obj));
             }
+        }
+        for(Animation3D anim: animations){
+            anim.play();
         }
         if(horizontalDistance(mTargetMarker.getPosition(),position)< CLEAR_DISTANCE){
             setRemoveAnimation(mTargetMarker);
@@ -479,17 +488,19 @@ public class SceneRenderer extends RajawaliRenderer {
                             if(i % (v2*4) == 0){
                                 path4.add(v);
                             }
+                            if(i == 100 && path4.size() < 2){
+                                path4.add(v);
+                            }
                         }
                     }
                     this.path = new Line3D(linePoints, 10, Color.BLUE);
                     this.path.setMaterial(blue);
                     if(pathEnabled){
                         scene.addChild(this.path);
-//                    }
-//                    if(path2Enabled){
-                        this.path2 = new Line3D(path4, 30, Color.RED);
+                    }
+                    if(path2Enabled){
+                        this.path2 = new Line3D(path4, 200, Color.RED);
                         this.path2.setMaterial(red);
-                        this.path2.setTransparent(true);
                         scene.addChild(this.path2);
                     }
                     // Add Objects and start Animations
