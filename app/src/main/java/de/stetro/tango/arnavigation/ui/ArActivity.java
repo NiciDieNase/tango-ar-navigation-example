@@ -87,6 +87,7 @@ import static de.stetro.tango.arnavigation.ui.util.MappingUtils.getDepthAtTouchP
 public class ArActivity extends AppCompatActivity implements View.OnTouchListener,
 		EnvironmentSelectionListener, SceneRenderer.OnRoutingErrorListener {
 
+	public static final String MAP_TRANSFORM = "map_transform";
 	private EnvironmentDAO environment;
 
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
@@ -202,6 +203,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		setSupportActionBar(toolbar);
 
 		setupSurfaceView();
+
+		if(savedInstanceState != null && savedInstanceState.containsKey(MAP_TRANSFORM)){
+			this.mapView.setActiveTransformation(savedInstanceState.getDoubleArray(MAP_TRANSFORM));
+		}
 
 		Bundle extras = getIntent().getExtras();
 		boolean enabledDefault = ENABLED_DEFAULT;
@@ -430,8 +435,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				tangoUx.stop();
 			}
 		}
-//		environment.setMapTransform(mapView.getActiveTransformation());
-//		environment.save();
+	}
+
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		double[] activeTransformation = mapView.getActiveTransformation();
+		outState.putDoubleArray(MAP_TRANSFORM,activeTransformation);
+		super.onSaveInstanceState(outState);
 	}
 
 	@Override
