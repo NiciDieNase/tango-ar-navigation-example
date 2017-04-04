@@ -39,6 +39,7 @@ public class LoadingDialogFragment extends DialogFragment {
 			messageView.setText(message);
 		}
 		builder.setView(layout);
+		builder.setCancelable(false);
 		return builder.create();
 	}
 }

@@ -202,11 +202,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		ButterKnife.bind(this);
 		setSupportActionBar(toolbar);
 
-		setupSurfaceView();
-
 		if(savedInstanceState != null && savedInstanceState.containsKey(MAP_TRANSFORM)){
-			this.mapView.setActiveTransformation(savedInstanceState.getDoubleArray(MAP_TRANSFORM));
+			mapView.setActiveTransformation(savedInstanceState.getDoubleArray(MAP_TRANSFORM));
+		} else {
+			Log.d(TAG,"No saved instance state");
 		}
+		setupSurfaceView();
 
 		Bundle extras = getIntent().getExtras();
 		boolean enabledDefault = ENABLED_DEFAULT;
@@ -225,7 +226,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			coinsEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_COINS_ENABLED, enabledDefault);
 			motivationEndDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
 			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, enabledDefault);
-			Snackbar.make(uxLayout,"Delay = " + motivationEndDelay, Snackbar.LENGTH_SHORT).show();
+//			Snackbar.make(uxLayout,"Delay = " + motivationEndDelay, Snackbar.LENGTH_SHORT).show();
 
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
 			if (environment_id != 0) {
@@ -441,7 +442,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	protected void onSaveInstanceState(Bundle outState) {
 		double[] activeTransformation = mapView.getActiveTransformation();
 		outState.putDoubleArray(MAP_TRANSFORM,activeTransformation);
+		Log.d(TAG, "Saving State");
 		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	protected void onRestoreInstanceState(Bundle savedInstanceState) {
+		super.onRestoreInstanceState(savedInstanceState);
+		Log.d(TAG, "Restoring State");
+		this.mapView.setActiveTransformation(savedInstanceState.getDoubleArray(MAP_TRANSFORM));
 	}
 
 	@Override
