@@ -25,8 +25,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
             "path only",
             "path2 and loadingspinner",
             "path2 and motivation",
-            "coins and motivation",
-            "everything"
+            "coins and motivation"
     };
 
     private Context mContext;
@@ -80,9 +79,10 @@ class ScenariosAdaper extends RecyclerView.Adapter {
             this.position = position;
         }
 
-        @Override
+ @Override
         public void onClick(View view) {
-            Intent i = getIntent();
+            Intent i = new Intent(mContext, ArActivity.class);
+            i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentID);
             switch (position){
                 case 0:
                     i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
@@ -109,38 +109,11 @@ class ScenariosAdaper extends RecyclerView.Adapter {
                     i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,5.0);
                     mContext.startActivity(i);
                     break;
-                case 4:
-                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE, 2.0);
-                    mContext.startActivity(i);
-                    break;
-                case 5:
-                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
-                    mContext.startActivity(i);
-                    break;
-                case 6:
-                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, false);
-                    i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
-                    i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,10l);
-                    mContext.startActivity(i);
-                    break;
-                case 7:
-                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT,false);
-                    i.putExtra(ScenarioSelectActivity.KEY_COINS_ENABLED, true);
-                    mContext.startActivity(i);
-                    break;
                 default:
                     Snackbar.make(view,"No Scenario defined",Snackbar.LENGTH_SHORT).show();
                     break;
             }
         }
 
-        Intent getIntent(){
-            Intent i = new Intent(mContext, ArActivity.class);
-            i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentID);
-            return i;
-        }
-    }
+	}
 }

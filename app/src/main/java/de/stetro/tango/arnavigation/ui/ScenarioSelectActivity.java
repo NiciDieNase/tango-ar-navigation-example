@@ -87,6 +87,13 @@ public class ScenarioSelectActivity extends AppCompatActivity {
             case R.id.start_mapping_mode:
                 startActivity(new Intent(this,ArActivity.class));
                 break;
+            case R.id.start_with_everything:
+                Intent i = new Intent(this,ArActivity.class);
+                i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentId);
+                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
+                i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
+                startActivity(i);
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
