@@ -11,6 +11,7 @@ public class MapTransformationGestureDetector {
     private float angle;
     private float scale;
     private Vector3 translation;
+    private boolean translateOnly;
 
     private OnMapTransformationGestureListener mListener;
 
@@ -32,6 +33,9 @@ public class MapTransformationGestureDetector {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 ptrID1 = event.getPointerId(event.getActionIndex());
+                sX = event.getX(event.findPointerIndex(ptrID1));
+                sY = event.getY(event.findPointerIndex(ptrID1));
+                translateOnly = true;
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
                 ptrID2 = event.getPointerId(event.getActionIndex());
@@ -39,6 +43,7 @@ public class MapTransformationGestureDetector {
                 sY = event.getY(event.findPointerIndex(ptrID1));
                 fX = event.getX(event.findPointerIndex(ptrID2));
                 fY = event.getY(event.findPointerIndex(ptrID2));
+                translateOnly = false;
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (ptrID1 != INVALID_POINTER_ID && ptrID2 != INVALID_POINTER_ID) {
@@ -56,14 +61,30 @@ public class MapTransformationGestureDetector {
                     if (mListener != null) {
                         mListener.OnTransform(this);
                     }
+                } else if(translateOnly){
+                    float nsX, nsY;
+                    nsX = event.getX(event.findPointerIndex(ptrID1));
+                    nsY = event.getY(event.findPointerIndex(ptrID1));
+
+                    angle = 0.0f;
+                    scale = 1.0f;
+                    translation = new Vector3(nsX - sX, nsY -sY, 0);
+                    if (mListener != null) {
+                        mListener.OnTransform(this);
+                    }
                 }
                 break;
             case MotionEvent.ACTION_UP:
                 ptrID1 = INVALID_POINTER_ID;
+                if(translateOnly){
+                    mListener.OnTransformEnd(this);
+                }
                 break;
             case MotionEvent.ACTION_POINTER_UP:
                 ptrID2 = INVALID_POINTER_ID;
-                mListener.OnTransformEnd(this);
+                if(!translateOnly){
+                    mListener.OnTransformEnd(this);
+                }
                 break;
             case MotionEvent.ACTION_CANCEL:
                 ptrID1 = INVALID_POINTER_ID;
