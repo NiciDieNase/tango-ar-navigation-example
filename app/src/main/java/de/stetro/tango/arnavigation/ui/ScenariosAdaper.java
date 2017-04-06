@@ -22,14 +22,11 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     private final int numScenarios = 20;
     private  final String[] description = {
-            "everything, loadingspinner, no motivation", // 0
-            "only path2",
-            "motivation disabled",                      //2
-            "Floorplan disabled",
-            "7s delay, Floorplan disabled",             //4
-            "everything disabled",
-            "LoadingSpinner, no motivation, 10s",      //6
-            "coins only"
+            "path only",
+            "path2 and loadingspinner",
+            "path2 and motivation",
+            "coins and motivation",
+            "everything"
     };
 
     private Context mContext;
@@ -88,30 +85,33 @@ class ScenariosAdaper extends RecyclerView.Adapter {
             Intent i = getIntent();
             switch (position){
                 case 0:
-                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD, false);
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
+                    i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED, true);
                     mContext.startActivity(i);
                     break;
                 case 1:
                     i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
+                    i.putExtra(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED,true);
                     i.putExtra(ScenarioSelectActivity.KEY_PATH2_ENABLED,true);
                     mContext.startActivity(i);
                     break;
                 case 2:
-                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
+                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,true);
+                    i.putExtra(ScenarioSelectActivity.KEY_PATH2_ENABLED,true);
+                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,5.0);
                     mContext.startActivity(i);
                     break;
                 case 3:
-                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
+                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,true);
+                    i.putExtra(ScenarioSelectActivity.KEY_COINS_ENABLED,true);
+                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,5.0);
                     mContext.startActivity(i);
                     break;
                 case 4:
                     i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_DELAY_SEC,7l);
-                    i.putExtra(ScenarioSelectActivity.KEY_FLOORPLAN_ENABLED,false);
+                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE, 2.0);
                     mContext.startActivity(i);
                     break;
                 case 5:

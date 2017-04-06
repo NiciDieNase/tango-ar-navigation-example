@@ -89,6 +89,10 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 	public static final String MAP_TRANSFORM = "map_transform";
 	private EnvironmentDAO environment;
+	private TangoPoseData lastPose;
+	private double distanceTraveled = 0.0;
+	private double minDistance = 0.0;
+	private Snackbar motivationSnackbar;
 
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 
@@ -224,6 +228,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, enabledDefault);
 			path2Enabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH2_ENABLED, enabledDefault);
 			coinsEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_COINS_ENABLED, enabledDefault);
+			minDistance = extras.getDouble(ScenarioSelectActivity.KEY_MIN_DISTANCE, 0.0);
 			motivationEndDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
 			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, enabledDefault);
 //			Snackbar.make(uxLayout,"Delay = " + motivationEndDelay, Snackbar.LENGTH_SHORT).show();
@@ -316,6 +321,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 		if(enableLoadingSpinner){
 			showProgressBar("Please walk around to localize");
+		} else if (!motivationEnabled){
+			motivationSnackbar = Snackbar.make(uxLayout, "Please walk around to localize", Snackbar.LENGTH_INDEFINITE);
+			motivationSnackbar.show();
 		}
 	}
 
@@ -595,6 +603,20 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		intrinsics = tango.getCameraIntrinsics(ACTIVE_CAMERA_INTRINSICS);
 	}
 
+	public void updateDistanceTraveled(TangoPoseData pose){
+		if(pose.baseFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE
+				&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE){
+			if(null != this.lastPose){
+				double x = pose.translation[0] - lastPose.translation[0];
+				double y = pose.translation[1] - lastPose.translation[1];
+				double z = pose.translation[2] - lastPose.translation[2];
+				double distance = Math.sqrt(x*x + y*y + z*z);
+				this.distanceTraveled += distance;
+			}
+			this.lastPose = pose;
+		}
+	}
+
 	protected void connectTango() {
 		tango = new Tango(this, new Runnable() {
 			@Override
@@ -783,6 +805,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			}
 			if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_DEVICE){
+				updateDistanceTraveled(pose);
 				if(environment_id != 0){
 					if(!motivating) {
 						final Vector3 position = ScenePoseCalculator.
@@ -803,17 +826,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				// Handle new ADF Pose
 			} else if (pose.baseFrame == TangoPoseData.COORDINATE_FRAME_AREA_DESCRIPTION
 					&& pose.targetFrame == TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE) {
-				if(!localized){
-					new Timer().schedule(new TimerTask() {
-						@Override
-						public void run() {
-							renderer.onLocalized();
-							onInitialLocalization();
-						}
-					}, motivationEndDelay * 1000);
+				if(!localized && distanceTraveled >= minDistance){
+					renderer.onLocalized();
+					onInitialLocalization();
 					Log.d(TAG,"Initial Localization");
+					if(motivationSnackbar != null){
+						motivationSnackbar.dismiss();
+					}
+					localized = true;
 				}
-				localized = true;
 			}
 		}
 		@Override

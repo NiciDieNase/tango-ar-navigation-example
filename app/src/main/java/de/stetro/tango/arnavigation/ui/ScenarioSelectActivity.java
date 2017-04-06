@@ -32,6 +32,7 @@ public class ScenarioSelectActivity extends AppCompatActivity {
     public static final String KEY_COINS_ENABLED = "coins_enabled";
 	public static final String KEY_LOADINGSPINNER_ENABLED = "spinner_enabled";
     public static final String KEY_ENABLED_DEFAULT = "enabled_default";
+    public static final String KEY_MIN_DISTANCE = "minimum_distance";
 
     private static final String SAVED_ENVIRONMENT_ID = "saved_environment";
     private static final String TAG = ScenarioSelectActivity.class.getSimpleName();

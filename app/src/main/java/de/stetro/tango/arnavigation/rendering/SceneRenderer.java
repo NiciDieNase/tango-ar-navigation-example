@@ -196,7 +196,7 @@ public class SceneRenderer extends RajawaliRenderer {
 
         yellow = new Material();
         yellow.setColor(Color.YELLOW);
-        yellow.enableLighting(true);
+        yellow.enableLighting(false);
         yellow.setColorInfluence(1.0f);
 //        yellow.setAmbientColor(Color.YELLOW);
         yellow.setDiffuseMethod(new DiffuseMethod.Lambert());
@@ -470,8 +470,8 @@ public class SceneRenderer extends RajawaliRenderer {
                     for (int i = 0; i < pathBetween.size(); i++){
                         Vector2 vector2 = pathBetween.get(i);
                         curvePath.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
-                        if(i % 4 == 0){
-                            curve2Path.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel()+.7, vector2.getY() ));
+                        if(i % 4 == 0 || i == 1 || i == pathBetween.size()-1 || i == pathBetween.size()-2){
+                            curve2Path.addPoint(new Vector3(vector2.getX(), floorPlan.getFloorLevel(), vector2.getY() ));
                         }
                     }
                     // Calculate distance between Objects placed on path
@@ -521,8 +521,8 @@ public class SceneRenderer extends RajawaliRenderer {
                         scene.addChild(this.path);
                     }
                     if(path2Enabled){
-                        this.path2 = new Line3D(path2Points, 5000.0f, Color.RED);
-                        this.path2.setMaterial(red);
+                        this.path2 = new Line3D(path2Points, 5000.0f, Color.YELLOW);
+                        this.path2.setMaterial(yellow);
                         scene.addChild(this.path2);
                     }
                     // Add Objects and start Animations
