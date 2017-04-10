@@ -10,7 +10,6 @@ public class EnvironmentDAO extends SugarRecord {
 
     long rootNodeId;
     double floorLevel;
-    double[] mapTransform;
     String ADFUUID;
     String title;
     String description;

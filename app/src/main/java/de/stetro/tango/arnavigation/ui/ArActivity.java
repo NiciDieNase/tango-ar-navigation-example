@@ -93,6 +93,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	private double distanceTraveled = 0.0;
 	private double minDistance = 0.0;
 	private Snackbar motivationSnackbar;
+	private boolean editingEnabled;
 
 	public enum ActivityState {mapping, editing, localizing, navigating, undefined;}
 
@@ -220,6 +221,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		boolean pathEnabled = enabledDefault;
 		boolean path2Enabled = enabledDefault;
 		boolean coinsEnabled = enabledDefault;
+		editingEnabled = enabledDefault;
 		if (extras != null) {
 			// get what to render from intent
 			enabledDefault = extras.getBoolean(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, ENABLED_DEFAULT);
@@ -228,6 +230,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			pathEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH_ENABLED, enabledDefault);
 			path2Enabled = extras.getBoolean(ScenarioSelectActivity.KEY_PATH2_ENABLED, enabledDefault);
 			coinsEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_COINS_ENABLED, enabledDefault);
+			editingEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_EDITING_ENABLED, enabledDefault);
 			minDistance = extras.getDouble(ScenarioSelectActivity.KEY_MIN_DISTANCE, 0.0);
 			motivationEndDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
 			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, enabledDefault);
@@ -251,7 +254,11 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				}
 				capturePointcloud = false;
 				fabPause.hide();
-				fabSave.hide();
+				if(editingEnabled && tree != null){
+					currentState = ActivityState.editing;
+				} else {
+					fabSave.hide();
+				}
 				updatePOIs = true;
 //				setRecognizingSnackbar(true);
 			}
@@ -685,7 +692,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
 			config.putBoolean(TangoConfig.KEY_BOOLEAN_LEARNINGMODE, LEARNINGMODE_ENABLED);
 		} else {
-			config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, false);
+			if(editingEnabled){
+				config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, true);
+				config.putInt(TangoConfig.KEY_INT_DEPTH_MODE, TangoConfig.TANGO_DEPTH_MODE_POINT_CLOUD);
+			} else {
+				config.putBoolean(TangoConfig.KEY_BOOLEAN_DEPTH, false);
+			}
 			config.putString(TangoConfig.KEY_STRING_AREADESCRIPTION, adfuuid);
 		}
 		return config;
@@ -874,13 +886,23 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				@Override
 				protected Long doInBackground(Object... params) {
 					long treeId = 0l;
-					String uuid = tango.saveAreaDescription();
-					publishProgress(1);
+					String uuid;
+					if(adfuuid == ""){
+						uuid = tango.saveAreaDescription();
+						publishProgress(1);
+					} else {
+						uuid = adfuuid;
+					}
 					saveToFile(renderer.getFloorPlanData(), uuid);
 					publishProgress(2);
 					Log.d(TAG, "Saved ADF");
-					EnvironmentDAO environmentDAO = new EnvironmentDAO(uuid, treeId, finalFloorLevel);
-					environmentDAO.save();
+					EnvironmentDAO environmentDAO;
+					if(environment_id == 0){
+						environmentDAO = new EnvironmentDAO(uuid, treeId, finalFloorLevel);
+						environmentDAO.save();
+					} else {
+						environmentDAO = environment;
+					}
 					publishProgress(3);
 					Log.d(TAG, "Saved environment");
 					return environmentDAO.getId();

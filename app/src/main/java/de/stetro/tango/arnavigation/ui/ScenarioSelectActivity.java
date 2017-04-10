@@ -37,6 +37,7 @@ public class ScenarioSelectActivity extends AppCompatActivity {
     private static final String SAVED_ENVIRONMENT_ID = "saved_environment";
     private static final String TAG = ScenarioSelectActivity.class.getSimpleName();
     public static final int COL_SPAN = 3;
+    public static final String KEY_EDITING_ENABLED = "editing_enabled";
     private Long environmentId;
 
     @BindView(R.id.recycler_view)
@@ -90,8 +91,9 @@ public class ScenarioSelectActivity extends AppCompatActivity {
             case R.id.start_with_everything:
                 Intent i = new Intent(this,ArActivity.class);
                 i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentId);
-                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
+                i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
                 i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
+                i.putExtra(ScenarioSelectActivity.KEY_EDITING_ENABLED,true);
                 startActivity(i);
                 break;
         }
