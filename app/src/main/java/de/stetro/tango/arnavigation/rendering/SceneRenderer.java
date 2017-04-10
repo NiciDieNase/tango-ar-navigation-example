@@ -69,7 +69,7 @@ public class SceneRenderer extends RajawaliRenderer {
     private static final String TAG = SceneRenderer.class.getSimpleName();
     private static final int MAX_NUMBER_OF_POINTS = 60000;
     private static final double CLEAR_DISTANCE = .8;
-    private double RANDOM_RANGE = 15.0;
+    private double RANDOM_RANGE = 10.0;
     private static final int NUM_RANDOM_OBJECTS = 40;
     private QuadTree data;
     // Rajawali texture used to render the Tango color camera
