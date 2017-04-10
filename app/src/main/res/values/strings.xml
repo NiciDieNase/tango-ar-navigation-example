@@ -23,4 +23,5 @@
     <string name="scenarios_activity_name" translatable="false">AR Navigation Scenarios</string>
     <string name="recognizing_area_explaination">Recognizing the area...</string>
     <string name="scenario">Scenario</string>
+    <string name="please_walk_around_to_localize">Please walk around to localize.</string>
 </resources>

@@ -9,4 +9,5 @@
     <string name="set_end_point">Anfangspunkt setzen</string>
     <string name="set_start_point">Endpunkt setzen</string>
     <string name="scenario">Szenario</string>
+    <string name="please_walk_around_to_localize">Bitte laufen sie in paar Schritte zur Lokalisierung.</string>
 </resources>

@@ -333,9 +333,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		}
 
 		if(enableLoadingSpinner){
-			showProgressBar("Please walk around to localize");
+			showProgressBar(getString(R.string.please_walk_around_to_localize));
 		} else if (!motivationEnabled){
-			motivationSnackbar = Snackbar.make(uxLayout, "Please walk around to localize", Snackbar.LENGTH_INDEFINITE);
+			motivationSnackbar = Snackbar.make(uxLayout, getString(R.string.please_walk_around_to_localize), Snackbar.LENGTH_INDEFINITE);
 			motivationSnackbar.show();
 		}
 	}
