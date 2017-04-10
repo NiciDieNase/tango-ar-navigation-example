@@ -157,6 +157,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 	@BindView(R.id.fab_pause) FloatingActionButton fabPause;
 	@BindView(R.id.fab_save) FloatingActionButton fabSave;
 	@BindView(R.id.fab_addpoi) FloatingActionButton fabAddPoi;
+	@BindView(R.id.fab_exit) FloatingActionButton fabExit;
 	@BindView(R.id.progressSpinner) ProgressBar progressBar;
 	@BindView(R.id.drawer_layout) DrawerLayout mDrawerLayout;
 	@BindView(R.id.left_drawer) RecyclerView mRecyclerView;
@@ -381,6 +382,13 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						poiAdapter.update(poiDAOs);
 					}
 				}).show(getFragmentManager(),"saveDialog");
+			}
+		});
+
+		fabExit.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				ArActivity.this.finish();
 			}
 		});
 	}

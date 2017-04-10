@@ -22,8 +22,8 @@
                 android:id="@+id/text1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginLeft="12dp"
+                android:layout_marginTop="12dp"
                 android:text="Title"
                 android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
                 card_view:layout_constraintLeft_toLeftOf="parent"
@@ -33,13 +33,14 @@
                 android:id="@+id/text2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="12dp"
                 android:layout_marginLeft="0dp"
                 android:layout_marginTop="8dp"
                 android:text="Description"
                 card_view:layout_constraintBottom_toBottomOf="parent"
                 card_view:layout_constraintLeft_toLeftOf="@+id/text1"
-                card_view:layout_constraintTop_toBottomOf="@+id/text1"/>
+                card_view:layout_constraintTop_toBottomOf="@+id/text1"
+                card_view:layout_constraintVertical_bias="0.0"/>
 
         </android.support.constraint.ConstraintLayout>
 
