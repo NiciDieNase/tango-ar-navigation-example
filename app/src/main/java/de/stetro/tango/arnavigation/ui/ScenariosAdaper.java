@@ -85,7 +85,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
                 case 0:
                     i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
                     i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED, true);
-                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,3.0);
+                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,1.0);
                     i.putExtra(ScenarioSelectActivity.KEY_ADD_POI_ENABLED, false);
                     mContext.startActivity(i);
                     break;
@@ -93,7 +93,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
                     i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
                     i.putExtra(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED,true);
                     i.putExtra(ScenarioSelectActivity.KEY_PATH2_ENABLED,true);
-                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,5.0);
+                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,4.0);
                     i.putExtra(ScenarioSelectActivity.KEY_ADD_POI_ENABLED, false);
                     mContext.startActivity(i);
                     break;
