@@ -4,22 +4,23 @@
     <string name="set_start_point">Set Start Point</string>
     <string name="set_end_point">Set End Point</string>
     <string name="failed_measurement">Failed Measurment</string>
-    <string name="failed_permissions">Failed Permissions</string>
+    <string name="failed_permissions" translatable="false">Failed Permissions</string>
     <string name="floorSet">Floor is defined</string>
-    <string name="no_depth_data">No Depth Data</string>
-    <string name="exception_out_of_date">"Tango service outdated!"</string>
-    <string name="exception_tango_error">"Tango exception!"</string>
-    <string name="exception_tango_invalid">"Tango invalid exception! Try again!"</string>
-    <string name="toggle_pointcloud">Toggle Pointcloud</string>
+    <string name="no_depth_data" translatable="false">No Depth Data</string>
+    <string name="exception_out_of_date" translatable="false">"Tango service outdated!"</string>
+    <string name="exception_tango_error" translatable="false">"Tango exception!"</string>
+    <string name="exception_tango_invalid" translatable="false">"Tango invalid exception! Try again!"</string>
+    <string name="toggle_pointcloud" translatable="false">Toggle Pointcloud</string>
     <string name="load_environment">Load Environment</string>
-    <string name="toogle_floor_plan">Toogle Floor Plan</string>
-    <string name="place_poi">Tap where to place POI</string>
+    <string name="toogle_floor_plan" translatable="false">Toogle Floor Plan</string>
+    <string name="place_poi" translatable="false">Tap where to place POI</string>
     <string name="clear_pois">Clear POIs</string>
-    <string name="drawer_open">Drawer open</string>
-    <string name="drawer_close">Drawer close</string>
-    <string name="toggle_quadrant">This should toggle a quadrant</string>
-    <string name="routing_error">Routing error</string>
-    <string name="end_motivation_mode">End Motivation Mode</string>
-    <string name="scenarios_activity_name">AR Navigation Scenarios</string>
+    <string name="drawer_open" translatable="false">Drawer open</string>
+    <string name="drawer_close" translatable="false">Drawer close</string>
+    <string name="toggle_quadrant" translatable="false">This should toggle a quadrant</string>
+    <string name="routing_error" translatable="false">Routing error</string>
+    <string name="end_motivation_mode" translatable="false">End Motivation Mode</string>
+    <string name="scenarios_activity_name" translatable="false">AR Navigation Scenarios</string>
     <string name="recognizing_area_explaination">Recognizing the area...</string>
+    <string name="scenario">Scenario</string>
 </resources>

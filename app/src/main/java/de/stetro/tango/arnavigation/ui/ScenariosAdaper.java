@@ -56,7 +56,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        ((ViewHolder) holder).title.setText("Scenario " + (position+1));
+        ((ViewHolder) holder).title.setText(mContext.getString(R.string.scenario) + " " + (position+1));
         ((ViewHolder) holder).subtitle.setText(
                 position < description.length
                         ? description[position]

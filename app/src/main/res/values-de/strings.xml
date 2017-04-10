@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AR Navigation</string>
+    <string name="clear_pois">Lösche Points-of-Interest</string>
+    <string name="failed_measurement">Messung fehlgeschlagen</string>
+    <string name="floorSet">Boden wurde definiert</string>
+    <string name="load_environment">Umgebung laden</string>
+    <string name="recognizing_area_explaination">Versuche Umgebung zu erkennen ...</string>
+    <string name="set_end_point">Anfangspunkt setzen</string>
+    <string name="set_start_point">Endpunkt setzen</string>
+    <string name="scenario">Szenario</string>
+</resources>
