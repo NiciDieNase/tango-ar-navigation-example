@@ -731,13 +731,12 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 						switch (currentState){
 							case mapping:
 								mapper.setFloorLevel(touchPosition[1]);
-								message(R.string.floorSet);
+//								message(R.string.floorSet);
 								Log.d(TAG, "Floor level: " + mapper.getFloorLevel());
 								renderer.setFloorLevel(mapper.getFloorLevel());
-//								TODO render Floorplan
 								break;
 							case editing:
-								message(R.string.toggle_quadrant);
+//								message(R.string.toggle_quadrant);
 								mapper.toggle(new Vector2(touchPosition[0],touchPosition[2]));
 								renderer.setTrackPosition(new Vector3(touchPosition[0],touchPosition[1],touchPosition[2]));
 								break;

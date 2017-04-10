@@ -20,12 +20,10 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     private static final String TAG = ScenariosAdaper.class.getSimpleName();
 
-    private final int numScenarios = 20;
     private  final String[] description = {
-            "path only",
-            "path2 and loadingspinner",
-            "path2 and motivation",
-            "coins and motivation"
+            "Ziel: Aquarium",
+            "Ziel: Pepper",
+            "Ziel: Kaffeemaschine"
     };
 
     private Context mContext;
@@ -58,7 +56,7 @@ class ScenariosAdaper extends RecyclerView.Adapter {
 
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        ((ViewHolder) holder).title.setText("Scenario " + (position));
+        ((ViewHolder) holder).title.setText("Scenario " + (position+1));
         ((ViewHolder) holder).subtitle.setText(
                 position < description.length
                         ? description[position]
@@ -87,26 +85,21 @@ class ScenariosAdaper extends RecyclerView.Adapter {
                 case 0:
                     i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
                     i.putExtra(ScenarioSelectActivity.KEY_PATH_ENABLED, true);
+                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,3.0);
                     mContext.startActivity(i);
                     break;
                 case 1:
                     i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
                     i.putExtra(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED,true);
                     i.putExtra(ScenarioSelectActivity.KEY_PATH2_ENABLED,true);
+                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,5.0);
                     mContext.startActivity(i);
                     break;
                 case 2:
                     i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
                     i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,true);
-                    i.putExtra(ScenarioSelectActivity.KEY_PATH2_ENABLED,true);
-                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,5.0);
-                    mContext.startActivity(i);
-                    break;
-                case 3:
-                    i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, false);
-                    i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,true);
                     i.putExtra(ScenarioSelectActivity.KEY_COINS_ENABLED,true);
-                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,5.0);
+                    i.putExtra(ScenarioSelectActivity.KEY_MIN_DISTANCE,7.0);
                     mContext.startActivity(i);
                     break;
                 default:
