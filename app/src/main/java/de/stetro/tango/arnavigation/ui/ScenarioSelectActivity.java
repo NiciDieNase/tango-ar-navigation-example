@@ -33,6 +33,7 @@ public class ScenarioSelectActivity extends AppCompatActivity {
 	public static final String KEY_LOADINGSPINNER_ENABLED = "spinner_enabled";
     public static final String KEY_ENABLED_DEFAULT = "enabled_default";
     public static final String KEY_MIN_DISTANCE = "minimum_distance";
+    public static final String KEY_ADD_POI_ENABLED = "add_poi_enabled";
 
     private static final String SAVED_ENVIRONMENT_ID = "saved_environment";
     private static final String TAG = ScenarioSelectActivity.class.getSimpleName();
@@ -93,7 +94,8 @@ public class ScenarioSelectActivity extends AppCompatActivity {
                 i.putExtra(ScenarioSelectActivity.KEY_ENVIRONMENT_ID,environmentId);
                 i.putExtra(ScenarioSelectActivity.KEY_MOTIVATION_ENABELD,false);
                 i.putExtra(ScenarioSelectActivity.KEY_ENABLED_DEFAULT, true);
-                i.putExtra(ScenarioSelectActivity.KEY_EDITING_ENABLED,true);
+                i.putExtra(ScenarioSelectActivity.KEY_EDITING_ENABLED, true);
+                i.putExtra(ScenarioSelectActivity.KEY_ADD_POI_ENABLED, true);
                 startActivity(i);
                 break;
         }

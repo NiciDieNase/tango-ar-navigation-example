@@ -221,6 +221,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		boolean pathEnabled = enabledDefault;
 		boolean path2Enabled = enabledDefault;
 		boolean coinsEnabled = enabledDefault;
+		boolean addPOIEnabled = true;
 		editingEnabled = enabledDefault;
 		if (extras != null) {
 			// get what to render from intent
@@ -234,6 +235,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			minDistance = extras.getDouble(ScenarioSelectActivity.KEY_MIN_DISTANCE, 0.0);
 			motivationEndDelay = extras.getLong(ScenarioSelectActivity.KEY_DELAY_SEC,0);
 			enableLoadingSpinner = extras.getBoolean(ScenarioSelectActivity.KEY_LOADINGSPINNER_ENABLED, enabledDefault);
+			addPOIEnabled = extras.getBoolean(ScenarioSelectActivity.KEY_ADD_POI_ENABLED, true);
 //			Snackbar.make(uxLayout,"Delay = " + motivationEndDelay, Snackbar.LENGTH_SHORT).show();
 
 			environment_id = extras.getLong(KEY_ENVIRONMENT_ID, 0);
@@ -254,6 +256,9 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 				}
 				capturePointcloud = false;
 				fabPause.hide();
+				if(!addPOIEnabled){
+					fabAddPoi.hide();
+				}
 				if(editingEnabled && tree != null){
 					currentState = ActivityState.editing;
 				} else {
