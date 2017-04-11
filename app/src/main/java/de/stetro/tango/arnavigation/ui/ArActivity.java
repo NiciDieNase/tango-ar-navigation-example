@@ -328,9 +328,8 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 
 		if(environment_id != 0){
 			setupDrawer(environment_id);
-		} else {
-			mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
 		}
+		mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
 
 		if(enableLoadingSpinner){
 			showProgressBar(getString(R.string.please_walk_around_to_localize));
@@ -495,6 +494,15 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 			return true;
 		}
 		switch (item.getItemId()) {
+			case android.R.id.home:
+				if(!localized){
+					if (mDrawerLayout.isDrawerOpen(mDrawerLayout)) {
+						mDrawerLayout.closeDrawer(mDrawerLayout);
+					} else {
+						mDrawerLayout.openDrawer(mDrawerLayout);
+					}
+				}
+				break;
 			case R.id.set_start_point:
 				renderer.setStartPoint(getCurrentADFPose(), extrinsics);
 				break;
@@ -542,6 +550,7 @@ public class ArActivity extends AppCompatActivity implements View.OnTouchListene
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
+				mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
 				hideProgressBar();
 				setRecognizingSnackbar(false);
 				if(mAdapter != null && mAdapter.getItemCount() > 0){
